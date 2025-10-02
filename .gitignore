@@ -1,0 +1,23 @@
+----------------------------------------------------------------------
+Node.js/Backend Ignored Files
+----------------------------------------------------------------------
+Dependencies
+/node_modules
+/backend/node_modules
+
+Environment Variables and Secrets (CRUCIAL)
+This prevents your DB credentials and JWT secret key from being committed.
+.env
+/backend/.env
+
+Logs and temp files
+npm-debug.log
+.DS_Store
+*.swp
+.idea/
+
+Development/Build Outputs (for future frontend)
+/build
+/dist
+/out
+/public
