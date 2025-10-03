@@ -1,12 +1,40 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-
-// Import Components
 import AuthForm from './components/AuthForm.jsx';
+import DashboardLayout from './components/DashboardLayout.jsx'; // Import the layout component
+
+
+// Import the new HOD Availability Editor component
+import HODAvailabilityEditor from './components/HODAvailabilityEditor.jsx'; 
 
 // --- Placeholder Components (Will be replaced with actual Dashboards) ---
-const HODDashboard = () => <div className="p-8 text-white bg-gray-700 min-h-screen">HOD Dashboard: Welcome, {useAuth().user.name}!</div>;
-const ProctorDashboard = () => <div className="p-8 text-white bg-gray-800 min-h-screen">Proctor Dashboard: Welcome, {useAuth().user.name}!</div>;
+// Define the inner pages of the HOD dashboard
+const HODHome = () => 
+    <div className="space-y-8">
+        <h2 className="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4">Overview</h2>
+        {/* The functional editor component */}
+        <HODAvailabilityEditor />
+        
+        {/* Live Visitor Queue Placeholder */}
+        <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+            <h3 className="text-xl font-semibold mb-3 text-indigo-600">Live Visitor Queue (Pending)</h3>
+            <p className="text-gray-500">Waiting for bot integration and queue component implementation...</p>
+        </div>
+    </div>;
+
+// The main HOD Dashboard component using the layout
+const HODDashboard = () => 
+    <DashboardLayout>
+        <HODHome />
+    </DashboardLayout>
+;
+
+const ProctorDashboard = () => 
+    <DashboardLayout>
+        <div className="text-xl font-bold p-4">Proctor Home Overview</div>
+        {/* Actual content will go here (Student List, etc.) */}
+    </DashboardLayout>
+;
 
 // --- Authentication Context ---
 const AuthContext = createContext(null);
@@ -52,21 +80,17 @@ const AuthProvider = ({ children }) => {
 };
 
 // --- Protected Route Wrapper ---
-// Ensures only logged-in users with the correct role can access the route
 const ProtectedRoute = ({ allowedRoles }) => {
     const { token, user, logout } = useAuth();
 
     // 1. Check if user is logged in
     if (!token || !user) {
-        // Not authenticated, redirect to login page
         return <Navigate to="/" replace />;
     }
 
     // 2. Check if the user's role is allowed for this route
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Log out and redirect if the user tries to access a dashboard they shouldn't
         logout(); 
-        // We could redirect to a 403 page, but redirecting to login is safer for this project
         return <Navigate to="/" replace />; 
     }
 
@@ -86,14 +110,16 @@ const App = () => {
 
                     {/* HOD Protected Routes */}
                     <Route element={<ProtectedRoute allowedRoles={['HOD']} />}>
-                        <Route path="/hod/dashboard" element={<HODDashboard />} />
-                        {/* Other HOD routes will go here (e.g., /hod/reports) */}
+                        {/* HOD Dashboard route now points to the component wrapped in the layout */}
+                        <Route path="/hod/dashboard" element={<HODDashboard />} /> 
+                        {/* Define other HOD routes here */}
                     </Route>
 
                     {/* Proctor Protected Routes */}
                     <Route element={<ProtectedRoute allowedRoles={['Proctor']} />}>
+                         {/* Proctor Dashboard route now points to the component wrapped in the layout */}
                         <Route path="/proctor/dashboard" element={<ProctorDashboard />} />
-                        {/* Other Proctor routes will go here (e.g., /proctor/students) */}
+                        {/* Define other Proctor routes here */}
                     </Route>
 
                     {/* Fallback for 404 - redirects to home */}
