@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaBell, FaUserCircle, FaSignOutAlt } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
 
@@ -10,6 +10,7 @@ const sidebarItems = [
   { name: "Settings", path: "/hod/settings" },
   { name: "Logout", path: "/logout" } // implement logout route in App.jsx
 ];
+
 
 const DashboardLayout = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
@@ -78,5 +79,7 @@ const DashboardLayout = ({ children }) => {
     </div>
   );
 };
+
+
 
 export default DashboardLayout;

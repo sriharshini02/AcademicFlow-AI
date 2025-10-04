@@ -2,56 +2,40 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import db from './models/index.js';
-// Import the routes function
-import authRoutes from './routes/auth.routes.js'; 
 
-// Load environment variables from .env file
+import authRoutes from './routes/auth.routes.js';
+import hodAvailabilityRoutes from './routes/hodAvailability.routes.js';
+
 dotenv.config();
 
 const app = express();
+app.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.url);
+  console.log("Headers:", req.headers);
+  next();
+});
 
-// Set up CORS options to allow requests from the React frontend
-const corsOptions = {
+app.use(cors({
   origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-
-// Middleware to parse requests of content-type - application/json
+  credentials: true
+}));
 app.use(express.json());
-
-// Middleware to parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
-
-// --- Database Synchronization ---
-// The { alter: true } option ensures Sequelize checks the current state 
-// of the database and makes necessary changes (creates tables if they don't exist).
 db.sequelize.sync({ alter: true })
-  .then(() => {
-    console.log("Database synced successfully. Tables are ready.");
-    // Initial data seeding can go here if needed 
-  })
-  .catch((err) => {
-    console.error("Failed to sync database:", err.message);
-  });
+  .then(() => console.log("✅ Database synced successfully."))
+  .catch(err => console.error("❌ Failed to sync database:", err.message));
 
-// --- Simple Test Route ---
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to the Academic Dashboard API. Ready to build!" });
+  res.json({ message: "Welcome to the Academic Dashboard API!" });
 });
 
-// --- Register Routes ---
-// This registers all authentication routes
-authRoutes(app); 
+// Auth routes
+authRoutes(app);
 
+// HOD availability routes (now require token)
+app.use('/api/hod/availability', hodAvailabilityRoutes);
 
-// Define the port and start the server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}.`);
-});
-
-export default app;
+app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

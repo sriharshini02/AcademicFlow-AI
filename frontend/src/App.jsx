@@ -29,12 +29,29 @@ const HODDashboard = () =>
     </DashboardLayout>
 ;
 
-const ProctorDashboard = () => 
-    <DashboardLayout>
-        <div className="text-xl font-bold p-4">Proctor Home Overview</div>
-        {/* Actual content will go here (Student List, etc.) */}
-    </DashboardLayout>
-;
+const ProctorLayout = ({ children }) => (
+  <div className="min-h-screen flex flex-col">
+    <header className="bg-blue-900 text-white p-4">Proctor Portal</header>
+    <div className="flex flex-1">
+      <aside className="w-60 bg-blue-100 p-4">
+        <ul>
+          <li>👩‍🎓 Student Monitoring</li>
+          <li>📊 Reports</li>
+          <li>⚙️ Settings</li>
+        </ul>
+      </aside>
+      <main className="flex-1 p-6">{children}</main>
+    </div>
+  </div>
+);
+
+const ProctorDashboard = () => (
+  <ProctorLayout>
+    <h2 className="text-xl font-bold">Proctor Home Overview</h2>
+    {/* More proctor-specific widgets */}
+  </ProctorLayout>
+);
+
 
 // --- Authentication Context ---
 const AuthContext = createContext(null);
