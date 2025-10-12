@@ -16,12 +16,15 @@ const HODAvailabilityEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // --- Helper: Format Date or string to HH:MM for input/display ---
   const formatTimeForInput = (time) => {
     if (!time) return '';
-    const date = typeof time === 'string' ? new Date(`1970-01-01T${time}`) : new Date(time);
-    return date.toTimeString().substring(0, 5); // HH:MM
+    const date = new Date(time);
+    if (isNaN(date.getTime())) return ''; // ❌ catch invalid
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
   };
+
 
   // --- Fetch HOD Status ---
   const fetchStatus = async () => {
@@ -51,32 +54,33 @@ const HODAvailabilityEditor = () => {
     fetchStatus();
   }, [token]);
 
-  // --- Update HOD Status ---
 const handleUpdate = async (updateData) => {
   if (!token) return;
   setIsSaving(true);
   setMessage('');
 
-  // Convert HH:MM string to a Date object for backend
-  const [hours, minutes] = (updateData.estimated_return_time || '12:00').split(':');
-    const now = new Date();
-    const returnDate = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    parseInt(hours, 10),
-    parseInt(minutes, 10),
-    0,
-    0
-  ).toISOString();
+  // 🛡️ Step 1: Ensure valid HH:mm format
+  let safeTime = updateData.estimated_return_time || '12:00';
+  if (!/^\d{2}:\d{2}$/.test(safeTime)) {
+    console.warn('Invalid time format detected, defaulting to 12:00');
+    safeTime = '12:00';
+  }
 
+  // 🕒 Step 2: Construct ISO string preserving local time (no UTC drift)
+  const [hours, minutes] = safeTime.split(':').map(Number);
+  const localDate = new Date();
+  localDate.setHours(hours, minutes, 0, 0);
+  
+  // This ensures DB always gets consistent ISO timestamp
+  const isoTime = localDate.toISOString();
 
   const safeData = {
     ...updateData,
-    estimated_return_time: returnDate, // Date for backend only
+    estimated_return_time: isoTime, // Send clean ISO format to backend
   };
 
-  setStatus(updateData); // keep state as string for rendering
+  // 🧼 Step 3: Keep UI-friendly HH:mm in React state
+  setStatus({ ...updateData, estimated_return_time: safeTime });
 
   try {
     await axios.put(API_BASE_URL, safeData, {
@@ -90,6 +94,7 @@ const handleUpdate = async (updateData) => {
     setIsSaving(false);
   }
 };
+
 
 
   // --- Toggle Availability ---
@@ -213,26 +218,28 @@ const handleUpdate = async (updateData) => {
         </div>
 
         {/* Estimated Return Time */}
-        <div className="col-span-1">
-          <label
-            htmlFor="estimated_return_time"
-            className="block text-sm font-medium text-gray-700 mb-2 flex items-center"
-          >
-            <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Est. Return Time
-          </label>
-          <input
-            type="time"
-            id="estimated_return_time"
-            name="estimated_return_time"
-            value={status.estimated_return_time || '12:00'}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-            disabled={status.is_available}
-          />
-          <p className="text-xs text-gray-400 mt-1">
-            Only functional when status is UNAVAILABLE.
-          </p>
-        </div>
+        {!status.is_available && (
+          <div className="col-span-1">
+            <label
+              htmlFor="estimated_return_time"
+              className="block text-sm font-medium text-gray-700 mb-2 flex items-center"
+            >
+              <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Est. Return Time
+            </label>
+            <input
+              type="time"
+              id="estimated_return_time"
+              name="estimated_return_time"
+              value={status.estimated_return_time || '12:00'}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              Only functional when status is UNAVAILABLE.
+            </p>
+          </div>
+        )}
+
       </div>
 
       {/* Save Button */}
