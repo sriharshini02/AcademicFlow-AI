@@ -2,24 +2,19 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AuthForm from './components/AuthForm.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx'; // Import the layout component
-
-
-// Import the new HOD Availability Editor component
+import HODToDoList from './components/HODToDoList.jsx';
+import HODAppointments from './components/HODAppointments.jsx';
 import HODAvailabilityEditor from './components/HODAvailabilityEditor.jsx'; 
 
-// --- Placeholder Components (Will be replaced with actual Dashboards) ---
 // Define the inner pages of the HOD dashboard
 const HODHome = () => 
     <div className="space-y-8">
         <h2 className="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4">Overview</h2>
         {/* The functional editor component */}
         <HODAvailabilityEditor />
-        
-        {/* Live Visitor Queue Placeholder */}
-        <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
-            <h3 className="text-xl font-semibold mb-3 text-indigo-600">Live Visitor Queue (Pending)</h3>
-            <p className="text-gray-500">Waiting for bot integration and queue component implementation...</p>
-        </div>
+        {/* To-Do List */}
+        <HODToDoList />
+        <HODAppointments /> 
     </div>;
 
 // The main HOD Dashboard component using the layout

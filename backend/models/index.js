@@ -62,8 +62,16 @@ db.VisitLog = sequelize.define('visit_log', {
     status: { type: Sequelize.STRING(30), allowNull: false, defaultValue: 'Queued' },
     end_time: { type: Sequelize.DATE },
     hod_notes: { type: Sequelize.TEXT },
-    reason_not_met: { type: Sequelize.TEXT }
-}, { tableName: 'visit_logs_history' });
+    reason_not_met: { type: Sequelize.TEXT },
+    scheduled_time: { type: Sequelize.DATE }, // HOD scheduled time
+    action_taken: { 
+        type: Sequelize.ENUM('Pending','Scheduled','Cancelled','Completed'), 
+        allowNull: false, 
+        defaultValue: 'Pending' 
+    },
+    alert_sent: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+
+    }, { tableName: 'visit_logs_history' });
 
 // To Do Tasks Model (Table 5: todo_tasks)
 db.ToDoTask = sequelize.define('todo_task', {

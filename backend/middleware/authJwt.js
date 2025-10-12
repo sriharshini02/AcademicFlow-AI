@@ -15,6 +15,8 @@ export const verifyToken = (req, res, next) => {
     if (err) return res.status(403).json({ message: 'Failed to authenticate token' });
     req.userId = decoded.id; // attach HOD ID from token
     req.role = decoded.role;
+    req.user = { user_id: decoded.id, role: decoded.role };
+
     next();
   });
 };

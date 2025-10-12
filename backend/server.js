@@ -5,6 +5,9 @@ import db from './models/index.js';
 
 import authRoutes from './routes/auth.routes.js';
 import hodAvailabilityRoutes from './routes/hodAvailability.routes.js';
+import todoRoutes from './routes/todo.js';
+import visitLogsRoutes from './routes/visit_logs.routes.js';
+
 
 dotenv.config();
 
@@ -14,7 +17,7 @@ app.use((req, res, next) => {
   console.log("Headers:", req.headers);
   next();
 });
-
+authRoutes(app);  
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
@@ -22,6 +25,8 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/todo', todoRoutes);
+app.use('/api/visit_logs', visitLogsRoutes);
 
 db.sequelize.sync({ alter: true })
   .then(() => console.log("✅ Database synced successfully."))
