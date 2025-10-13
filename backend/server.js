@@ -12,19 +12,24 @@ import visitLogsRoutes from './routes/visit_logs.routes.js';
 dotenv.config();
 
 const app = express();
-app.use((req, res, next) => {
-  console.log("Incoming request:", req.method, req.url);
-  console.log("Headers:", req.headers);
-  next();
-});
-authRoutes(app);  
+
 app.use(cors({
   origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use((req, res, next) => {
+  console.log("Incoming request:", req.method, req.url);
+  console.log("Headers:", req.headers);
+  next();
+});
+
+
+authRoutes(app);  
 app.use('/api/todo', todoRoutes);
 app.use('/api/visit_logs', visitLogsRoutes);
 
