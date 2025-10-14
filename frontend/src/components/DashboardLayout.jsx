@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaBell, FaUserCircle } from "react-icons/fa";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import axios from "axios";
 
 const sidebarItems = [
@@ -14,40 +14,65 @@ const sidebarItems = [
 
 const DashboardLayout = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
-  const [newVisitors, setNewVisitors] = useState(0);
+  const [newVisitors, setNewVisitors] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
   const token = localStorage.getItem("token");
+  const location = useLocation();
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
-    if (!darkMode) document.body.classList.add("dark");
-    else document.body.classList.remove("dark");
+    document.body.classList.toggle("dark", !darkMode);
   };
 
-  // Poll every 10 seconds for new visitors
-  useEffect(() => {
-    const fetchNewVisitors = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/visit_logs/new-visitors", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setNewVisitors(res.data.count);
-      } catch (err) {
-        console.error("Failed to fetch new visitor count:", err.message);
-      }
-    };
+  // Fetch queued visitors
+  const fetchQueuedVisitors = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/visit_logs/queued", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNewVisitors(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch queued visitors:", err.message);
+    }
+  };
 
-    fetchNewVisitors(); // Initial fetch
-    const interval = setInterval(fetchNewVisitors, 10000); // Poll every 10 sec
+  useEffect(() => {
+    fetchQueuedVisitors();
+    const interval = setInterval(fetchQueuedVisitors, 10000);
     return () => clearInterval(interval);
   }, [token]);
+
+  const handleBellClick = () => setShowDropdown(!showDropdown);
+
+  useEffect(() => {
+    const handleClickOutside = async (e) => {
+      if (!e.target.closest(".notification-dropdown") && showDropdown) {
+        setShowDropdown(false);
+        if (newVisitors.length > 0) {
+          setTimeout(async () => {
+            try {
+              await axios.put(
+                "http://localhost:5000/api/visit_logs/acknowledge-new",
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              setNewVisitors([]);
+            } catch (err) {
+              console.error("Failed to acknowledge new requests:", err.message);
+            }
+          }, 3000);
+        }
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [newVisitors, showDropdown, token]);
 
   return (
     <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
       {/* Sidebar */}
       <aside className="w-64 bg-indigo-600 text-white flex flex-col">
-        <div className="text-2xl font-bold p-6 border-b border-indigo-500">
-          AcademicFlow
-        </div>
+        <div className="text-2xl font-bold p-6 border-b border-indigo-500">AcademicFlow</div>
         <nav className="flex-1 flex flex-col gap-2 p-4">
           {sidebarItems.map((item) => (
             <NavLink
@@ -65,15 +90,18 @@ const DashboardLayout = ({ children }) => {
         </nav>
       </aside>
 
-      {/* Main content area */}
+      {/* Main content */}
       <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
         <header className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 shadow">
           <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-            HOD Dashboard
+            {location.pathname === "/hod/dashboard"
+              ? "HOD Dashboard"
+              : location.pathname === "/hod/appointments"
+              ? "Appointments"
+              : "HOD Panel"}
           </h1>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 relative notification-dropdown">
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
@@ -81,26 +109,51 @@ const DashboardLayout = ({ children }) => {
               {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon />}
             </button>
 
-            {/* Notification Bell */}
             <div className="relative">
-              <button className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition relative">
+              <button
+                onClick={handleBellClick}
+                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition relative"
+              >
                 <FaBell />
-                {newVisitors > 0 && (
+                {newVisitors.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {newVisitors}
+                    {newVisitors.length}
                   </span>
                 )}
               </button>
+
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 shadow-lg rounded-lg border dark:border-gray-700 z-50">
+                  <div className="p-3 border-b dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200">
+                    Notifications
+                  </div>
+                  {newVisitors.length > 0 ? (
+                    <ul className="max-h-64 overflow-y-auto">
+                      {newVisitors.map((visit) => (
+                        <li
+                          key={visit.visit_id}
+                          className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                        >
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                            {visit.visitor_name} ({visit.visitor_role})
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{visit.purpose}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="p-4 text-center text-gray-500 dark:text-gray-400">No new requests</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <button className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
               <FaUserCircle />
             </button>
-            
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 p-6 overflow-auto">{children}</main>
       </div>
     </div>
