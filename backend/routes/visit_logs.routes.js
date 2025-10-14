@@ -70,4 +70,18 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
   }
 });
 
+// Get count of new visitors (Pending)
+router.get("/new-visitors", verifyToken, async (req, res) => {
+  try {
+    const count = await db.VisitLog.count({
+      where: { action_taken: "Pending" },
+    });
+    res.json({ count });
+  } catch (err) {
+    console.error("Error fetching new visitors:", err);
+    res.status(500).json({ message: "Failed to fetch new visitors" });
+  }
+});
+
+
 export default router;

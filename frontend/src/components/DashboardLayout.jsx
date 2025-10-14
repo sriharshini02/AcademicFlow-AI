@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { FaSun, FaMoon, FaBell, FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { FaSun, FaMoon, FaBell, FaUserCircle } from "react-icons/fa";
 import { NavLink } from "react-router-dom";
+import axios from "axios";
 
 const sidebarItems = [
   { name: "Home", path: "/hod/dashboard" },
@@ -8,12 +9,13 @@ const sidebarItems = [
   { name: "Students", path: "/hod/students" },
   { name: "History", path: "/hod/history" },
   { name: "Settings", path: "/hod/settings" },
-  { name: "Logout", path: "/logout" } // implement logout route in App.jsx
+  { name: "Logout", path: "/logout" },
 ];
-
 
 const DashboardLayout = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
+  const [newVisitors, setNewVisitors] = useState(0);
+  const token = localStorage.getItem("token");
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -21,12 +23,31 @@ const DashboardLayout = ({ children }) => {
     else document.body.classList.remove("dark");
   };
 
+  // Poll every 10 seconds for new visitors
+  useEffect(() => {
+    const fetchNewVisitors = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/visit_logs/new-visitors", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setNewVisitors(res.data.count);
+      } catch (err) {
+        console.error("Failed to fetch new visitor count:", err.message);
+      }
+    };
+
+    fetchNewVisitors(); // Initial fetch
+    const interval = setInterval(fetchNewVisitors, 10000); // Poll every 10 sec
+    return () => clearInterval(interval);
+  }, [token]);
+
   return (
     <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      
       {/* Sidebar */}
       <aside className="w-64 bg-indigo-600 text-white flex flex-col">
-        <div className="text-2xl font-bold p-6 border-b border-indigo-500">AcademicFlow</div>
+        <div className="text-2xl font-bold p-6 border-b border-indigo-500">
+          AcademicFlow
+        </div>
         <nav className="flex-1 flex flex-col gap-2 p-4">
           {sidebarItems.map((item) => (
             <NavLink
@@ -46,14 +67,11 @@ const DashboardLayout = ({ children }) => {
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col">
-        
         {/* Top Bar */}
         <header className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 shadow">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-              HOD Dashboard
-            </h1>
-          </div>
+          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+            HOD Dashboard
+          </h1>
 
           <div className="flex items-center gap-4">
             <button
@@ -63,13 +81,22 @@ const DashboardLayout = ({ children }) => {
               {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon />}
             </button>
 
-            <button className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-              <FaBell />
-            </button>
+            {/* Notification Bell */}
+            <div className="relative">
+              <button className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition relative">
+                <FaBell />
+                {newVisitors > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {newVisitors}
+                  </span>
+                )}
+              </button>
+            </div>
 
             <button className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
               <FaUserCircle />
             </button>
+            
           </div>
         </header>
 
@@ -79,7 +106,5 @@ const DashboardLayout = ({ children }) => {
     </div>
   );
 };
-
-
 
 export default DashboardLayout;
