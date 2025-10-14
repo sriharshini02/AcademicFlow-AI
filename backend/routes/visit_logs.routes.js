@@ -4,6 +4,24 @@ import { verifyToken } from '../middleware/authJwt.js';
 
 const router = express.Router();
 
+// Get ALL appointments (any status)
+router.get("/", verifyToken, async (req, res) => {
+  try {
+    const visits = await db.VisitLog.findAll({
+      include: [
+        { model: db.StudentCore, as: "student", attributes: ["student_id", "full_name"] }
+      ],
+      order: [["check_in_time", "DESC"]],
+    });
+    res.json(visits);
+  } catch (err) {
+    console.error("Error fetching all appointments:", err);
+    res.status(500).json({ message: "Failed to fetch appointments" });
+  }
+});
+
+
+
 // Get queued (new) appointments
 router.get("/queued", verifyToken, async (req, res) => {
   try {
@@ -49,6 +67,8 @@ router.get('/pending', verifyToken, async (req, res) => {
     res.status(500).json({ message: 'Error fetching pending visits', error: err.message });
   }
 });
+
+
 
 // Scheduled appointments
 router.get('/scheduled', verifyToken, async (req, res) => {
