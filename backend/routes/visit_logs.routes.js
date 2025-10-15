@@ -90,33 +90,51 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
   try {
     const { action_taken, scheduled_time, hod_notes } = req.body;
     const visit = await db.VisitLog.findByPk(req.params.id);
+
     if (!visit) return res.status(404).json({ message: 'Appointment not found' });
+
+    // Handle undefined or null states gracefully
+    const currentState = visit.action_taken || visit.status || 'Pending';
 
     const validTransitions = {
       Pending: ['Scheduled', 'Completed', 'Cancelled'],
-      Scheduled: ['Completed', 'Cancelled'],
+      Scheduled: ['Scheduled','Completed', 'Cancelled'],
       Completed: [],
       Cancelled: [],
     };
 
-    if (!validTransitions[visit.action_taken].includes(action_taken)) {
-      return res.status(400).json({ message: `Cannot change ${visit.action_taken} to ${action_taken}` });
+    const allowedNext = validTransitions[currentState] || ['Scheduled', 'Completed', 'Cancelled'];
+
+    if (!allowedNext.includes(action_taken)) {
+      return res.status(400).json({
+        message: `Cannot change ${currentState} to ${action_taken}`,
+      });
     }
 
-    if (action_taken === 'Scheduled' && scheduled_time) visit.scheduled_time = scheduled_time;
+    // Handle Scheduled
+    if (action_taken === 'Scheduled' && scheduled_time) {
+      visit.scheduled_time = new Date(scheduled_time)
+        .toISOString()
+        .slice(0, 19)
+        .replace('T', ' ');
+    }
+
+    // Handle Completed
     if (action_taken === 'Completed') {
       visit.status = 'CheckedIn';
       visit.end_time = new Date();
       if (hod_notes) visit.hod_notes = hod_notes;
     }
-    visit.action_taken = action_taken;
 
+    visit.action_taken = action_taken;
     await visit.save();
+
     res.json({ message: 'Appointment updated successfully', visit });
   } catch (err) {
-    console.error(err);
+    console.error('Error updating appointment:', err);
     res.status(500).json({ message: 'Failed to update appointment', error: err.message });
   }
 });
+
 
 export default router;
