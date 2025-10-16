@@ -8,7 +8,7 @@ const Appointments = () => {
 
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-
+  const [selectedVisit, setSelectedVisit] = useState(null);
   const [hodNotes, setHodNotes] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -55,19 +55,19 @@ const Appointments = () => {
   };
 
   const handleMarkCompleted = (visit) => {
-    setSelected(visit);
+    setSelectedVisit(visit);
     setShowNotesModal(true);
   };
 
   const handleSaveNotes = async () => {
-    if (!selected) return;
-    await handleAction(selected.visit_id, "Completed", hodNotes);
+    if (!selectedVisit) return;
+    await handleAction(selectedVisit.visit_id, "Completed", hodNotes);
     setShowNotesModal(false);
     setHodNotes("");
   };
 
   const handleSchedule = (visit) => {
-    setSelected(visit);
+    setSelectedVisit(visit);
     setShowScheduleModal(true);
   };
 
@@ -77,7 +77,7 @@ const Appointments = () => {
       return;
     }
     const scheduled_time = new Date(`${scheduleDate}T${scheduleTime}`).toISOString();
-    await handleAction(selected.visit_id, "Scheduled", null, scheduled_time);
+    await handleAction(selectedVisit.visit_id, "Scheduled", null, scheduled_time);
     setShowScheduleModal(false);
     setScheduleDate("");
     setScheduleTime("");
