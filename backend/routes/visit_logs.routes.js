@@ -113,11 +113,16 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
 
     // Handle Scheduled
     if (action_taken === 'Scheduled' && scheduled_time) {
-      visit.scheduled_time = new Date(scheduled_time)
-        .toISOString()
-        .slice(0, 19)
-        .replace('T', ' ');
+      const localTime = new Date(scheduled_time);
+      // Adjust to IST (UTC+5:30)
+      const istOffsetMs = 5.5 * 60 * 60 * 1000;
+      const istDate = new Date(localTime.getTime() + istOffsetMs);
+
+      // Format for MySQL DATETIME (YYYY-MM-DD HH:mm:ss)
+      const formatted = istDate.toISOString().slice(0, 19).replace('T', ' ');
+      visit.scheduled_time = formatted;
     }
+
 
     // Handle Completed
     if (action_taken === 'Completed') {

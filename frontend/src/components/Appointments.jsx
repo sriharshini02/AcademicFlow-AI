@@ -3,7 +3,7 @@ import axios from "axios";
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
-  const [filter, setFilter] = useState("All");
+  const [filter, setFilter] = useState("All"); // Default filter
   const [selected, setSelected] = useState(null);
 
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -30,10 +30,33 @@ const Appointments = () => {
     fetchAppointments();
   }, []);
 
-  const filtered =
-    filter === "All"
-      ? appointments
-      : appointments.filter((a) => a.action_taken === filter);
+  const now = new Date();
+
+  const filtered = appointments.filter((a) => {
+    const scheduledTime = a.scheduled_time ? new Date(a.scheduled_time) : null;
+
+    switch (filter) {
+      case "Upcoming":
+        return (
+          a.action_taken === "Scheduled" &&
+          scheduledTime &&
+          scheduledTime > now
+        );
+      case "Missed":
+        return (
+          a.action_taken === "Scheduled" &&
+          scheduledTime &&
+          scheduledTime < now
+        );
+      case "Pending":
+      case "Scheduled":
+      case "Completed":
+      case "Cancelled":
+        return a.action_taken === filter;
+      default:
+        return true;
+    }
+  });
 
   const handleAction = async (visit_id, action, hod_notes = null, scheduled_time = null) => {
     try {
@@ -92,8 +115,7 @@ const Appointments = () => {
       default: return "text-gray-500";
     }
   };
-
-  // Add this helper function inside Appointments component (below getStatusColor)
+  
   const getTimeBadge = (app) => {
     if (app.action_taken !== "Scheduled" || !app.scheduled_time) return null;
 
@@ -101,13 +123,14 @@ const Appointments = () => {
     const scheduled = new Date(app.scheduled_time);
     const diffMinutes = (scheduled - now) / (1000 * 60);
 
-    if (diffMinutes > 0 && diffMinutes <= 30) {
+    // Tolerance: treat up to 1 minute past as still upcoming
+    if (diffMinutes >= -1 && diffMinutes <= 30) {
       return (
         <span className="ml-2 text-sm text-orange-600 font-medium">
           ⏰ Upcoming Soon
         </span>
       );
-    } else if (diffMinutes < 0 && app.action_taken !== "Completed" && app.action_taken !== "Cancelled") {
+    } else if (diffMinutes < -1) {
       return (
         <span className="ml-2 text-sm text-red-600 font-medium">
           ⚠️ Missed
@@ -116,6 +139,7 @@ const Appointments = () => {
     }
     return null;
   };
+
 
   return (
     <div className="p-4">
@@ -126,6 +150,8 @@ const Appointments = () => {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         >
+          <option value="Upcoming">Upcoming</option>
+          <option value="Missed">Missed</option>
           <option value="All">All</option>
           <option value="Pending">Pending</option>
           <option value="Scheduled">Scheduled</option>
@@ -134,11 +160,10 @@ const Appointments = () => {
         </select>
       </div>
 
-      {/* Appointment List View */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
           <div className="text-center text-gray-500 p-6 border rounded-lg">
-            No appointments found.
+            No {filter.toLowerCase()} appointments found.
           </div>
         ) : (
           filtered.map((app) => (
@@ -147,58 +172,31 @@ const Appointments = () => {
               className="border border-gray-300 rounded-lg p-4 bg-white hover:shadow-md transition cursor-pointer"
               onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)}
             >
-              {/* Top Line: Purpose + Status */}
-              <div className="flex justify-between items-center">
-              <h3 className="font-medium text-gray-800">
-                {app.purpose}
-              </h3>
+            {/* Top Line: Purpose + Status */}
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium text-gray-800">{app.purpose}</h3>
               <div className="flex items-center">
-                <span className={`${getStatusColor(app.action_taken)} font-semibold`}>
-                  {app.action_taken}
-                </span>
+                {/* Only show Scheduled if there's no Upcoming/Missed badge */}
+                {!(getTimeBadge(app)) && (
+                  <span className={`${getStatusColor(app.action_taken)} font-semibold`}>
+                    {app.action_taken}
+                  </span>
+                )}
                 {getTimeBadge(app)}
               </div>
             </div>
-
-
-              {/* Inline Student Name */}
               <p className="text-sm text-gray-600 mt-1">
                 Student: {app.student?.full_name || "N/A"}
               </p>
 
-              {/* Expanded Details */}
               {selected?.visit_id === app.visit_id && (
                 <div className="mt-3 border-t pt-3 text-sm text-gray-700 space-y-2">
                   <p><strong>Check-In:</strong> {new Date(app.check_in_time).toLocaleString()}</p>
                   <p><strong>Scheduled:</strong> {app.scheduled_time ? new Date(app.scheduled_time).toLocaleString() : "—"}</p>
                   {app.hod_notes && <p><strong>HOD Notes:</strong> {app.hod_notes}</p>}
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2 mt-2">
-                    {app.action_taken === "Pending" && (
-                      <>
-                        <button
-                          onClick={() => handleSchedule(app)}
-                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                          Schedule
-                        </button>
-                        <button
-                          onClick={() => handleMarkCompleted(app)}
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                        >
-                          Complete
-                        </button>
-                        <button
-                          onClick={() => handleAction(app.visit_id, "Cancelled")}
-                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    )}
-
-                    {app.action_taken === "Scheduled" && (
+                    {["Pending", "Scheduled"].includes(app.action_taken) && (
                       <>
                         <button
                           onClick={() => handleSchedule(app)}
