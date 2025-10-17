@@ -93,6 +93,30 @@ const Appointments = () => {
     }
   };
 
+  // Add this helper function inside Appointments component (below getStatusColor)
+  const getTimeBadge = (app) => {
+    if (app.action_taken !== "Scheduled" || !app.scheduled_time) return null;
+
+    const now = new Date();
+    const scheduled = new Date(app.scheduled_time);
+    const diffMinutes = (scheduled - now) / (1000 * 60);
+
+    if (diffMinutes > 0 && diffMinutes <= 30) {
+      return (
+        <span className="ml-2 text-sm text-orange-600 font-medium">
+          ⏰ Upcoming Soon
+        </span>
+      );
+    } else if (diffMinutes < 0 && app.action_taken !== "Completed" && app.action_taken !== "Cancelled") {
+      return (
+        <span className="ml-2 text-sm text-red-600 font-medium">
+          ⚠️ Missed
+        </span>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="p-4">
       <div className="flex justify-between mb-4 items-center">
@@ -125,11 +149,17 @@ const Appointments = () => {
             >
               {/* Top Line: Purpose + Status */}
               <div className="flex justify-between items-center">
-                <h3 className="font-medium text-gray-800">{app.purpose}</h3>
+              <h3 className="font-medium text-gray-800">
+                {app.purpose}
+              </h3>
+              <div className="flex items-center">
                 <span className={`${getStatusColor(app.action_taken)} font-semibold`}>
                   {app.action_taken}
                 </span>
+                {getTimeBadge(app)}
               </div>
+            </div>
+
 
               {/* Inline Student Name */}
               <p className="text-sm text-gray-600 mt-1">
@@ -170,6 +200,12 @@ const Appointments = () => {
 
                     {app.action_taken === "Scheduled" && (
                       <>
+                        <button
+                          onClick={() => handleSchedule(app)}
+                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                          Schedule
+                        </button>
                         <button
                           onClick={() => handleMarkCompleted(app)}
                           className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
