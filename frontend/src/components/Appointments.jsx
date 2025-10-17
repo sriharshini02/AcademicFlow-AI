@@ -145,20 +145,23 @@ const Appointments = () => {
     <div className="p-4">
       <div className="flex justify-between mb-4 items-center">
         <h2 className="text-xl font-semibold">Appointments</h2>
-        <select
-          className="border border-gray-300 rounded p-2"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="Upcoming">Upcoming</option>
-          <option value="Missed">Missed</option>
-          <option value="All">All</option>
-          <option value="Pending">Pending</option>
-          <option value="Scheduled">Scheduled</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
+        <div className="flex flex-wrap gap-2">
+          {["All", "Upcoming", "Missed", "Pending", "Scheduled", "Completed", "Cancelled"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilter(tab)}
+              className={`px-4 py-2 rounded-lg transition font-medium ${
+                filter === tab
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
+
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
