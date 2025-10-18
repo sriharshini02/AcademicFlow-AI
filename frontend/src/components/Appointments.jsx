@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import CalendarView from "./CalendarView"; // ✅ Correct import name
 
 const Appointments = () => {
   const [appointments, setAppointments] = useState([]);
-  const [filter, setFilter] = useState("All"); // Default filter
+  const [filter, setFilter] = useState("All");
+  const [viewMode, setViewMode] = useState("list");
   const [selected, setSelected] = useState(null);
 
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -12,9 +14,9 @@ const Appointments = () => {
   const [hodNotes, setHodNotes] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
-
   const token = localStorage.getItem("token");
 
+  // Fetch appointments
   const fetchAppointments = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/visit_logs/", {
@@ -34,7 +36,6 @@ const Appointments = () => {
 
   const filtered = appointments.filter((a) => {
     const scheduledTime = a.scheduled_time ? new Date(a.scheduled_time) : null;
-
     switch (filter) {
       case "Upcoming":
         return (
@@ -115,15 +116,13 @@ const Appointments = () => {
       default: return "text-gray-500";
     }
   };
-  
+
   const getTimeBadge = (app) => {
     if (app.action_taken !== "Scheduled" || !app.scheduled_time) return null;
-
     const now = new Date();
     const scheduled = new Date(app.scheduled_time);
     const diffMinutes = (scheduled - now) / (1000 * 60);
 
-    // Tolerance: treat up to 1 minute past as still upcoming
     if (diffMinutes >= -1 && diffMinutes <= 30) {
       return (
         <span className="ml-2 text-sm text-orange-600 font-medium">
@@ -140,94 +139,134 @@ const Appointments = () => {
     return null;
   };
 
-
   return (
     <div className="p-4">
+      {/* Tabs */}
       <div className="flex justify-between mb-4 items-center">
-        <h2 className="text-xl font-semibold">Appointments</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode("list")}
+            className={`px-4 py-2 rounded-t-lg font-medium transition ${
+              viewMode === "list"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            📋 List View
+          </button>
+          <button
+            onClick={() => setViewMode("calendar")}
+            className={`px-4 py-2 rounded-t-lg font-medium transition ${
+              viewMode === "calendar"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            🗓 Calendar View
+          </button>
+        </div>
+
         <div className="flex flex-wrap gap-2">
-          {["All", "Upcoming", "Missed", "Pending", "Scheduled", "Completed", "Cancelled"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilter(tab)}
-              className={`px-4 py-2 rounded-lg transition font-medium ${
-                filter === tab
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+          {["All", "Upcoming", "Missed", "Pending", "Scheduled", "Completed", "Cancelled"].map(
+            (tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilter(tab)}
+                className={`px-4 py-2 rounded-lg transition font-medium ${
+                  filter === tab
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {tab}
+              </button>
+            )
+          )}
         </div>
       </div>
 
-
-      <div className="space-y-3">
-        {filtered.length === 0 ? (
-          <div className="text-center text-gray-500 p-6 border rounded-lg">
-            No {filter.toLowerCase()} appointments found.
-          </div>
-        ) : (
-          filtered.map((app) => (
-            <div
-              key={app.visit_id}
-              className="border border-gray-300 rounded-lg p-4 bg-white hover:shadow-md transition cursor-pointer"
-              onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)}
-            >
-            {/* Top Line: Purpose + Status */}
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium text-gray-800">{app.purpose}</h3>
-              <div className="flex items-center">
-                {/* Only show Scheduled if there's no Upcoming/Missed badge */}
-                {!(getTimeBadge(app)) && (
-                  <span className={`${getStatusColor(app.action_taken)} font-semibold`}>
-                    {app.action_taken}
-                  </span>
-                )}
-                {getTimeBadge(app)}
-              </div>
+      {/* List View */}
+      {viewMode === "list" ? (
+        <div className="space-y-3">
+          {filtered.length === 0 ? (
+            <div className="text-center text-gray-500 p-6 border rounded-lg">
+              No {filter.toLowerCase()} appointments found.
             </div>
-              <p className="text-sm text-gray-600 mt-1">
-                Student: {app.student?.full_name || "N/A"}
-              </p>
-
-              {selected?.visit_id === app.visit_id && (
-                <div className="mt-3 border-t pt-3 text-sm text-gray-700 space-y-2">
-                  <p><strong>Check-In:</strong> {new Date(app.check_in_time).toLocaleString()}</p>
-                  <p><strong>Scheduled:</strong> {app.scheduled_time ? new Date(app.scheduled_time).toLocaleString() : "—"}</p>
-                  {app.hod_notes && <p><strong>HOD Notes:</strong> {app.hod_notes}</p>}
-
-                  <div className="flex gap-2 mt-2">
-                    {["Pending", "Scheduled"].includes(app.action_taken) && (
-                      <>
-                        <button
-                          onClick={() => handleSchedule(app)}
-                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                        >
-                          Schedule
-                        </button>
-                        <button
-                          onClick={() => handleMarkCompleted(app)}
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                        >
-                          Complete
-                        </button>
-                        <button
-                          onClick={() => handleAction(app.visit_id, "Cancelled")}
-                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                          Cancel
-                        </button>
-                      </>
+          ) : (
+            filtered.map((app) => (
+              <div
+                key={app.visit_id}
+                className="border border-gray-300 rounded-lg p-4 bg-white hover:shadow-md transition cursor-pointer"
+                onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)}
+              >
+                {/* Purpose + Status */}
+                <div className="flex justify-between items-center">
+                  <h3 className="font-medium text-gray-800">{app.purpose}</h3>
+                  <div className="flex items-center">
+                    {!getTimeBadge(app) && (
+                      <span className={`${getStatusColor(app.action_taken)} font-semibold`}>
+                        {app.action_taken}
+                      </span>
                     )}
+                    {getTimeBadge(app)}
                   </div>
                 </div>
-              )}
-            </div>
-          ))
-        )}
-      </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  Student: {app.student?.full_name || "N/A"}
+                </p>
+
+                {selected?.visit_id === app.visit_id && (
+                  <div className="mt-3 border-t pt-3 text-sm text-gray-700 space-y-2">
+                    <p>
+                      <strong>Check-In:</strong>{" "}
+                      {new Date(app.check_in_time).toLocaleString()}
+                    </p>
+                    <p>
+                      <strong>Scheduled:</strong>{" "}
+                      {app.scheduled_time
+                        ? new Date(app.scheduled_time).toLocaleString()
+                        : "—"}
+                    </p>
+                    {app.hod_notes && (
+                      <p>
+                        <strong>HOD Notes:</strong> {app.hod_notes}
+                      </p>
+                    )}
+
+                    <div className="flex gap-2 mt-2">
+                      {["Pending", "Scheduled"].includes(app.action_taken) && (
+                        <>
+                          <button
+                            onClick={() => handleSchedule(app)}
+                            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                          >
+                            Schedule
+                          </button>
+                          <button
+                            onClick={() => handleMarkCompleted(app)}
+                            className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                          >
+                            Complete
+                          </button>
+                          <button
+                            onClick={() => handleAction(app.visit_id, "Cancelled")}
+                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        // ✅ Calendar View
+        <CalendarView appointments={appointments} />
+      )}
 
       {/* Schedule Modal */}
       {showScheduleModal && (
@@ -255,10 +294,16 @@ const Appointments = () => {
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-4">
-              <button onClick={() => setShowScheduleModal(false)} className="px-3 py-1 bg-gray-300 rounded">
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="px-3 py-1 bg-gray-300 rounded"
+              >
                 Cancel
               </button>
-              <button onClick={handleConfirmSchedule} className="px-3 py-1 bg-blue-600 text-white rounded">
+              <button
+                onClick={handleConfirmSchedule}
+                className="px-3 py-1 bg-blue-600 text-white rounded"
+              >
                 Confirm
               </button>
             </div>
@@ -279,10 +324,16 @@ const Appointments = () => {
               onChange={(e) => setHodNotes(e.target.value)}
             />
             <div className="flex justify-end gap-3">
-              <button onClick={() => setShowNotesModal(false)} className="px-3 py-1 bg-gray-300 rounded">
+              <button
+                onClick={() => setShowNotesModal(false)}
+                className="px-3 py-1 bg-gray-300 rounded"
+              >
                 Cancel
               </button>
-              <button onClick={handleSaveNotes} className="px-3 py-1 bg-green-600 text-white rounded">
+              <button
+                onClick={handleSaveNotes}
+                className="px-3 py-1 bg-green-600 text-white rounded"
+              >
                 Save & Complete
               </button>
             </div>
