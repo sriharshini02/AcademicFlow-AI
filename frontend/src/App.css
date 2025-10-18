@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Add in your global.css or App.css */
+.rbc-toolbar button {
+  @apply px-2 py-1 bg-gray-100 rounded hover:bg-blue-200 transition;
+}
+
+.rbc-toolbar button.rbc-active {
+  @apply bg-blue-600 text-white;
+}
