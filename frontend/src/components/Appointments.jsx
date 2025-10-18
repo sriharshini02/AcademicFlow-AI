@@ -162,133 +162,141 @@ const Appointments = () => {
   };
 
   return (
-    <div className="p-4">
-      {/* Tabs */}
-      <div className="flex justify-between mb-4 items-center">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode("list")}
-            className={`px-4 py-2 rounded-t-lg font-medium transition ${
-              viewMode === "list"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            📋 List View
-          </button>
-          <button
-            onClick={() => setViewMode("calendar")}
-            className={`px-4 py-2 rounded-t-lg font-medium transition ${
-              viewMode === "calendar"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            🗓 Calendar View
-          </button>
-        </div>
+  <div className="p-4">
+    {/* Top Tabs */}
+    <div className="flex justify-start mb-4 items-center gap-2">
+      <button
+        onClick={() => setViewMode("list")}
+        className={`px-4 py-2 rounded-t-lg font-medium transition ${
+          viewMode === "list"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
+      >
+        📋 List View
+      </button>
+      <button
+        onClick={() => setViewMode("calendar")}
+        className={`px-4 py-2 rounded-t-lg font-medium transition ${
+          viewMode === "calendar"
+            ? "bg-blue-600 text-white"
+            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+        }`}
+      >
+        🗓 Calendar View
+      </button>
+    </div>
 
-        <div className="flex flex-wrap gap-2">
-          {["All", "Upcoming", "Missed", "Pending", "Scheduled", "Completed", "Cancelled"].map(
-            (tab) => (
-              <button
-                key={tab}
-                onClick={() => setFilter(tab)}
-                className={`px-4 py-2 rounded-lg transition font-medium ${
-                  filter === tab
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {tab}
-              </button>
-            )
-          )}
-        </div>
+    {/* Filters - only show in List View */}
+    {viewMode === "list" && (
+      <div className="flex flex-wrap gap-2 mb-4">
+        {["All", "Upcoming", "Missed", "Pending", "Scheduled", "Completed", "Cancelled"].map(
+          (tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilter(tab)}
+              className={`px-4 py-2 rounded-lg transition font-medium ${
+                filter === tab
+                  ? "bg-blue-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {tab}
+            </button>
+          )
+        )}
       </div>
+    )}
 
-      {/* List View */}
-      {viewMode === "list" ? (
-        <div className="space-y-3">
-          {filtered.length === 0 ? (
-            <div className="text-center text-gray-500 p-6 border rounded-lg">
-              No {filter.toLowerCase()} appointments found.
-            </div>
-          ) : (
-            filtered.map((app) => (
-              <div
-                key={app.visit_id}
-                className="border border-gray-300 rounded-lg p-4 bg-white hover:shadow-md transition cursor-pointer"
-                onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)}
-              >
-                {/* Purpose + Status */}
-                <div className="flex justify-between items-center">
-                  <h3 className="font-medium text-gray-800">{app.purpose}</h3>
-                  <div className="flex items-center">
-                    {!getTimeBadge(app) && (
-                      <span className={`${getStatusColor(app.action_taken)} font-semibold`}>
-                        {app.action_taken}
-                      </span>
+    {/* List View */}
+    {viewMode === "list" ? (
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <div className="text-center text-gray-500 p-6 border rounded-lg">
+            No {filter.toLowerCase()} appointments found.
+          </div>
+        ) : (
+          filtered.map((app) => (
+            <div
+              key={app.visit_id}
+              className="border border-gray-300 rounded-lg p-4 bg-white hover:shadow-md transition cursor-pointer"
+              onClick={() =>
+                setSelected(selected?.visit_id === app.visit_id ? null : app)
+              }
+            >
+              {/* Purpose + Status */}
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium text-gray-800">{app.purpose}</h3>
+                <div className="flex items-center">
+                  {!getTimeBadge(app) && (
+                    <span
+                      className={`${getStatusColor(app.action_taken)} font-semibold`}
+                    >
+                      {app.action_taken}
+                    </span>
+                  )}
+                  {getTimeBadge(app)}
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Student: {app.student?.full_name || "N/A"}
+              </p>
+
+              {selected?.visit_id === app.visit_id && (
+                <div className="mt-3 border-t pt-3 text-sm text-gray-700 space-y-2">
+                  <p>
+                    <strong>Check-In:</strong>{" "}
+                    {new Date(app.check_in_time).toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Scheduled:</strong>{" "}
+                    {app.scheduled_time
+                      ? new Date(app.scheduled_time).toLocaleString()
+                      : "—"}
+                  </p>
+                  {app.hod_notes && (
+                    <p>
+                      <strong>HOD Notes:</strong> {app.hod_notes}
+                    </p>
+                  )}
+
+                  <div className="flex gap-2 mt-2">
+                    {["Pending", "Scheduled"].includes(app.action_taken) && (
+                      <>
+                        <button
+                          onClick={() => handleSchedule(app)}
+                          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                          Schedule
+                        </button>
+                        <button
+                          onClick={() => handleMarkCompleted(app)}
+                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                        >
+                          Complete
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleAction(app.visit_id, "Cancelled")
+                          }
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                        >
+                          Cancel
+                        </button>
+                      </>
                     )}
-                    {getTimeBadge(app)}
                   </div>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  Student: {app.student?.full_name || "N/A"}
-                </p>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    ) : (
+      // ✅ Calendar View
+      <CalendarView appointments={appointments} />
+    )}
 
-                {selected?.visit_id === app.visit_id && (
-                  <div className="mt-3 border-t pt-3 text-sm text-gray-700 space-y-2">
-                    <p>
-                      <strong>Check-In:</strong>{" "}
-                      {new Date(app.check_in_time).toLocaleString()}
-                    </p>
-                    <p>
-                      <strong>Scheduled:</strong>{" "}
-                      {app.scheduled_time
-                        ? new Date(app.scheduled_time).toLocaleString()
-                        : "—"}
-                    </p>
-                    {app.hod_notes && (
-                      <p>
-                        <strong>HOD Notes:</strong> {app.hod_notes}
-                      </p>
-                    )}
-
-                    <div className="flex gap-2 mt-2">
-                      {["Pending", "Scheduled"].includes(app.action_taken) && (
-                        <>
-                          <button
-                            onClick={() => handleSchedule(app)}
-                            className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                          >
-                            Schedule
-                          </button>
-                          <button
-                            onClick={() => handleMarkCompleted(app)}
-                            className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                          >
-                            Complete
-                          </button>
-                          <button
-                            onClick={() => handleAction(app.visit_id, "Cancelled")}
-                            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      ) : (
-        // ✅ Calendar View
-        <CalendarView appointments={appointments} />
-      )}
 
       {/* Schedule Modal */}
       {showScheduleModal && (
