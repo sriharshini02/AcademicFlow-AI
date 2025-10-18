@@ -6,6 +6,7 @@ import HODToDoList from './components/HODToDoList.jsx';
 import HODAppointments from './components/HODAppointments.jsx';
 import HODAvailabilityEditor from './components/HODAvailabilityEditor.jsx'; 
 import Appointments from "./components/Appointments.jsx";
+import HODHistory from "./components/HODHistory.jsx";
 
 // --- Authentication Context ---
 const AuthContext = createContext(null);
@@ -113,6 +114,15 @@ const App = () => (
                             </DashboardLayout>
                         }
                     />
+                    <Route
+                        path="/hod/history"
+                        element={
+                            <DashboardLayout>
+                            <HODHistory />
+                            </DashboardLayout>
+                        }
+                        />
+
                 </Route>
 
                 {/* Proctor Protected */}
@@ -126,5 +136,6 @@ const App = () => (
         </AuthProvider>
     </Router>
 );
+
 
 export default App;

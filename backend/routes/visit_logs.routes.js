@@ -141,5 +141,20 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/visit_logs/history
+router.get('/history', async (req, res) => {
+  try {
+    const history = await db.VisitLog.findAll({
+      where: { action_taken: 'Completed' },
+      include: [{ model: db.StudentCore, as: 'student' }],
+      order: [['check_in_time', 'DESC']],
+    });
+    res.json(history);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch history' });
+  }
+});
+
 
 export default router;
