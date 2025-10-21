@@ -7,7 +7,7 @@ import HODAppointments from './components/HODAppointments.jsx';
 import HODAvailabilityEditor from './components/HODAvailabilityEditor.jsx'; 
 import Appointments from "./components/Appointments.jsx";
 import HODHistory from "./components/HODHistory.jsx";
-
+import HODStudents from './components/HODStudents.jsx';
 // --- Authentication Context ---
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -114,6 +114,15 @@ const App = () => (
                             </DashboardLayout>
                         }
                     />
+                    <Route
+                        path="/hod/students"
+                        element={
+                            <DashboardLayout>
+                                <HODStudents />
+                            </DashboardLayout>
+                        }
+                    />
+
                     <Route
                         path="/hod/history"
                         element={

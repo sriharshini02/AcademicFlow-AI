@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import hodAvailabilityRoutes from './routes/hodAvailability.routes.js';
 import todoRoutes from './routes/todo.js';
 import visitLogsRoutes from './routes/visit_logs.routes.js';
+import hodStudentsRoutes from "./routes/hodStudents.js";
 
 
 dotenv.config();
@@ -32,6 +33,8 @@ app.use((req, res, next) => {
 authRoutes(app);  
 app.use('/api/todo', todoRoutes);
 app.use('/api/visit_logs', visitLogsRoutes);
+
+app.use('/api/hod/students', hodStudentsRoutes);
 
 db.sequelize.sync({ alter: true })
   .then(() => console.log("✅ Database synced successfully."))
