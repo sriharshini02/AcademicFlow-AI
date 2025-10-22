@@ -1,64 +1,60 @@
-// src/components/HODStudents.jsx
 import React, { useEffect, useState } from "react";
-import { useAuth } from "../App.jsx";
 import axios from "axios";
 
 const HODStudents = () => {
-  const { token } = useAuth();
-  const [names, setNames] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchNames = async () => {
+    const fetchStudents = async () => {
       try {
-        setLoading(true);
-        setError(null);
-
+        const token = localStorage.getItem("token");
         const res = await axios.get("http://localhost:5000/api/hod/students", {
-  headers: { Authorization: `Bearer ${token}` },
-});
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-
-        console.log("Backend student data:", res.data);
-        setNames(Array.isArray(res.data) ? res.data : []);
+        console.log("🎓 Fetched students:", res.data);
+        setStudents(res.data);
       } catch (err) {
-        console.error("Error fetching students:", err);
-        setError("Unable to fetch students. Please try again later.");
+        console.error("❌ Error fetching HOD students:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNames();
-  }, [token]);
+    fetchStudents();
+  }, []);
+
+  if (loading) return <div>Loading students...</div>;
+  if (!students.length) return <div>No students found in your department.</div>;
 
   return (
-    <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
-      <h2 className="text-2xl font-bold text-gray-800 border-b pb-3">
-        Department Students
-      </h2>
-
-      {loading ? (
-        <div className="text-gray-600">Fetching student names...</div>
-      ) : error ? (
-        <div className="text-red-600">{error}</div>
-      ) : names.length === 0 ? (
-        <div className="text-gray-500">No students found for your department.</div>
-      ) : (
-        <div className="bg-white p-4 rounded-lg shadow-md">
-          <ul className="divide-y divide-gray-200">
-            {names.map((name, index) => (
-              <li
-                key={index}
-                className="p-2 hover:bg-gray-50 transition-colors duration-150"
-              >
-                {name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4 text-center">Students in Your Department</h2>
+      <table className="min-w-full border border-gray-300 rounded-lg shadow">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="px-4 py-2 border">Roll No</th>
+            <th className="px-4 py-2 border">Name</th>
+            <th className="px-4 py-2 border">Year</th>
+            <th className="px-4 py-2 border">Attendance (%)</th>
+            <th className="px-4 py-2 border">GPA</th>
+            <th className="px-4 py-2 border">Proctor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {students.map((stu, i) => (
+            <tr key={i} className="hover:bg-gray-50 text-center">
+              <td className="px-4 py-2 border">{stu.rollNumber}</td>
+              <td className="px-4 py-2 border font-medium">{stu.name}</td>
+              <td className="px-4 py-2 border">{stu.year}</td>
+              <td className="px-4 py-2 border">{stu.attendance}</td>
+              <td className="px-4 py-2 border">{stu.gpa}</td>
+              <td className="px-4 py-2 border">{stu.proctor}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

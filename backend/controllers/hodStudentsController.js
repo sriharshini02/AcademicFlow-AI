@@ -1,7 +1,93 @@
-// controllers/hodStudentsController.js
 import db from "../models/index.js";
 
-const { HODInfo, StudentCore } = db;
+const {
+  HODInfo,
+  StudentCore,
+  StudentAttendance,
+  StudentAcademicScore,
+  User
+} = db;
+
+export const getHODStudents = async (req, res) => {
+  try {
+    const hodId = req.userId;
+    console.log("📩 Incoming HOD ID:", hodId);
+
+    if (!hodId) return res.status(400).json({ message: "Missing HOD ID" });
+
+    const hodInfo = await HODInfo.findOne({
+      where: { hod_id: hodId },
+      raw: true,
+    });
+
+    if (!hodInfo)
+      return res.status(404).json({ message: "No HODInfo found for given ID" });
+
+    const department = hodInfo.department;
+
+    // ✅ FIXED: Use full_name instead of student_name
+    const students = await StudentCore.findAll({
+      where: { department },
+      attributes: ["student_id", "full_name", "roll_number", "year_group", "assigned_proctor_id"],
+      raw: true,
+    });
+
+    console.log(`✅ Found ${students.length} students for department ${department}`);
+
+    const result = await Promise.all(
+      students.map(async (s) => {
+        // Latest attendance record
+        const attendanceRecord = await StudentAttendance.findOne({
+          where: { student_id: s.student_id },
+          order: [["createdAt", "DESC"]],
+          attributes: ["attendance_percentage"],
+          raw: true,
+        });
+
+        // Average GPA
+        const scores = await StudentAcademicScore.findAll({
+          where: { student_id: s.student_id },
+          attributes: ["total_marks"],
+          raw: true,
+        });
+
+        const avgGPA = scores.length
+          ? (
+              scores.reduce((sum, sc) => sum + parseFloat(sc.total_marks || 0), 0) /
+              scores.length
+            ).toFixed(2)
+          : "N/A";
+
+        // Proctor name
+        let proctorName = "N/A";
+        if (s.assigned_proctor_id) {
+          const proctor = await User.findOne({
+            where: { user_id: s.assigned_proctor_id },
+            attributes: ["name"],
+            raw: true,
+          });
+          proctorName = proctor ? proctor.name : "N/A";
+        }
+
+        return {
+          id: s.student_id,
+          rollNumber: s.roll_number,
+          name: s.full_name,
+          year: s.year_group,
+          attendance: attendanceRecord ? attendanceRecord.attendance_percentage : "N/A",
+          gpa: avgGPA,
+          proctor: proctorName,
+        };
+      })
+    );
+
+    res.json(result);
+  } catch (err) {
+    console.error("Error fetching HOD students:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
 
 export const getStudentsByDepartment = async (req, res) => {
   try {
@@ -93,3 +179,4 @@ export const getStudentById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
