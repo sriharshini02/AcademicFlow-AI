@@ -5,7 +5,9 @@ const {
   StudentCore,
   StudentAttendance,
   StudentAcademicScore,
-  User
+  User,
+  StudentPersonalInfo,
+  StudentExtracurricular
 } = db;
 
 export const getHODStudents = async (req, res) => {
@@ -140,8 +142,6 @@ export const getStudentsByDepartment = async (req, res) => {
 };
 
 
-
-
 export const getStudentById = async (req, res) => {
   try {
     const studentId = req.params.studentId;
@@ -190,3 +190,71 @@ export const getStudentById = async (req, res) => {
   }
 };
 
+export const getHODStudentDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const student = await StudentCore.findOne({
+      where: { student_id: id },
+      include: [
+        { model: StudentPersonalInfo, required: false },
+        { model: StudentAcademicScore, required: false },
+        { model: StudentAttendance, required: false },
+        { model: StudentExtracurricular, required: false },
+        { model: User, as: 'proctor', attributes: ['name'], required: false }
+      ]
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Compute GPA
+    const scores = student.student_academic_scores || [];
+    const totalMarks = scores.reduce((sum, s) => sum + (s.total_marks || 0), 0);
+    const gpa = scores.length ? (totalMarks / scores.length).toFixed(2) : "N/A";
+
+    // Latest Attendance
+    const latestAttendance = (student.student_attendances || [])
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+
+    const personal = student.student_personal_info || {};
+
+    const response = {
+      roll_number: student.roll_number,
+      full_name: student.full_name,
+      department: student.department,
+      year_group: student.year_group,
+      section: student.section || "N/A",
+      gender: personal.gender || "N/A",
+      dob: personal.dob || "N/A",
+      phone: personal.phone_number || "N/A",
+      email: personal.college_email || "N/A",
+      personal_email: personal.personal_email || "N/A",
+      father_name: personal.father_name || "N/A",
+      mother_name: personal.mother_name || "N/A",
+      father_phone: personal.father_phone || "N/A",
+      mother_phone: personal.mother_phone || "N/A",
+      gpa,
+      total_marks: totalMarks,
+      attendance_percentage: latestAttendance?.attendance_percentage || "N/A",
+      proctor: student.proctor?.name || "N/A",
+      academic_scores: scores.map((s) => ({
+        semester: s.semester,
+        subject_name: s.subject_name,
+        total_marks: s.total_marks
+      })),
+      extracurriculars: (student.student_extracurriculars || []).map((e) => ({
+        activity_name: e.activity_name,
+        description: e.description,
+        achievement_level: e.achievement_level,
+        date: e.date
+      }))
+    };
+
+    res.json(response);
+  } catch (err) {
+    console.error("❌ Error fetching student details:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
