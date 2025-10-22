@@ -11,7 +11,7 @@ const {
 export const getHODStudents = async (req, res) => {
   try {
     const hodId = req.userId;
-    console.log("📩 Incoming HOD ID:", hodId);
+    const { year, section } = req.query; // <-- new filters
 
     if (!hodId) return res.status(400).json({ message: "Missing HOD ID" });
 
@@ -25,18 +25,28 @@ export const getHODStudents = async (req, res) => {
 
     const department = hodInfo.department;
 
-    // ✅ FIXED: Use full_name instead of student_name
+    // Build filter dynamically
+    const filter = { department };
+    if (year) filter.year_group = year;
+    if (section) filter.section = section;
+
     const students = await StudentCore.findAll({
-      where: { department },
-      attributes: ["student_id", "full_name", "roll_number", "year_group", "assigned_proctor_id"],
+      where: filter,
+      attributes: [
+        "student_id",
+        "full_name",
+        "roll_number",
+        "year_group",
+        "section",
+        "assigned_proctor_id",
+      ],
       raw: true,
     });
 
-    console.log(`✅ Found ${students.length} students for department ${department}`);
+    console.log(`✅ Found ${students.length} students for ${department} (${year || "All Years"} - ${section || "All Sections"})`);
 
     const result = await Promise.all(
       students.map(async (s) => {
-        // Latest attendance record
         const attendanceRecord = await StudentAttendance.findOne({
           where: { student_id: s.student_id },
           order: [["createdAt", "DESC"]],
@@ -44,7 +54,6 @@ export const getHODStudents = async (req, res) => {
           raw: true,
         });
 
-        // Average GPA
         const scores = await StudentAcademicScore.findAll({
           where: { student_id: s.student_id },
           attributes: ["total_marks"],
@@ -58,7 +67,6 @@ export const getHODStudents = async (req, res) => {
             ).toFixed(2)
           : "N/A";
 
-        // Proctor name
         let proctorName = "N/A";
         if (s.assigned_proctor_id) {
           const proctor = await User.findOne({
@@ -74,6 +82,7 @@ export const getHODStudents = async (req, res) => {
           rollNumber: s.roll_number,
           name: s.full_name,
           year: s.year_group,
+          section: s.section || "N/A",
           attendance: attendanceRecord ? attendanceRecord.attendance_percentage : "N/A",
           gpa: avgGPA,
           proctor: proctorName,
@@ -87,6 +96,7 @@ export const getHODStudents = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 
 export const getStudentsByDepartment = async (req, res) => {
