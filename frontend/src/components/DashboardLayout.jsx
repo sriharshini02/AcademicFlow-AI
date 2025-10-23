@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaBell, FaUserCircle } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router-dom";
 import axios from "axios";
-
+import HODSettings from "./HODSettings";
 const sidebarItems = [
   { name: "Home", path: "/hod/dashboard" },
   { name: "Appointments", path: "/hod/appointments" },
@@ -18,6 +18,10 @@ const DashboardLayout = ({ children }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const token = localStorage.getItem("token");
   const location = useLocation();
+  const [showSettings, setShowSettings] = useState(false);
+
+  const openSettings = () => setShowSettings(true);
+  const closeSettings = () => setShowSettings(false);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -74,19 +78,31 @@ const DashboardLayout = ({ children }) => {
       <aside className="w-64 bg-indigo-600 text-white flex flex-col">
         <div className="text-2xl font-bold p-6 border-b border-indigo-500">AcademicFlow</div>
         <nav className="flex-1 flex flex-col gap-2 p-4">
-          {sidebarItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.path}
-              className={({ isActive }) =>
-                `px-4 py-2 rounded hover:bg-indigo-700 transition ${
-                  isActive ? "bg-indigo-800 font-semibold" : ""
-                }`
-              }
-            >
-              {item.name}
-            </NavLink>
-          ))}
+
+          {sidebarItems.map((item) =>
+            item.name === "Settings" ? (
+              <button
+                key={item.name}
+                onClick={openSettings}
+                className="px-4 py-2 rounded hover:bg-indigo-700 w-full text-left transition"
+              >
+                {item.name}
+              </button>
+            ) : (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded hover:bg-indigo-700 transition ${
+                    isActive ? "bg-indigo-800 font-semibold" : ""
+                  }`
+                }
+              >
+                {item.name}
+              </NavLink>
+            )
+          )}
+
         </nav>
       </aside>
 
@@ -155,6 +171,33 @@ const DashboardLayout = ({ children }) => {
         </header>
 
         <main className="flex-1 p-6 overflow-auto">{children}</main>
+        {/* ⚙️ HOD Settings Modal */}
+{showSettings && (
+  <div
+    className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
+    onClick={closeSettings}
+  >
+    <div
+      className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-3/4 max-h-[90vh] overflow-y-auto p-6 relative"
+      onClick={(e) => e.stopPropagation()} // Prevent modal close when clicking inside
+    >
+      <button
+        onClick={closeSettings}
+        className="absolute top-3 right-4 text-gray-600 hover:text-red-500 text-xl"
+      >
+        ✖
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4 text-center text-gray-800 dark:text-gray-100">
+        HOD Settings
+      </h2>
+
+      {/* Render HODSettings component */}
+      <HODSettings onClose={closeSettings} />
+    </div>
+  </div>
+)}
+
       </div>
     </div>
   );
