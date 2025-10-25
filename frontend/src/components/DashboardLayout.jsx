@@ -3,13 +3,13 @@ import { FaSun, FaMoon, FaBell, FaUserCircle } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router-dom";
 import axios from "axios";
 import HODSettings from "./HODSettings";
+import ProfileDropdown from "./ProfileDropdown";
+
 const sidebarItems = [
   { name: "Home", path: "/hod/dashboard" },
   { name: "Appointments", path: "/hod/appointments" },
   { name: "Students", path: "/hod/students" },
   { name: "History", path: "/hod/history" },
-  { name: "Settings", path: "/hod/settings" },
-  { name: "Logout", path: "/logout" },
 ];
 
 const DashboardLayout = ({ children }) => {
@@ -114,10 +114,14 @@ const DashboardLayout = ({ children }) => {
               ? "HOD Dashboard"
               : location.pathname === "/hod/appointments"
               ? "Appointments"
+              : location.pathname === "/hod/students"
+              ? "Students"
               : "HOD Panel"}
           </h1>
 
+          {/* ---------- RIGHT SECTION (Dark, Bell, Profile) ---------- */}
           <div className="flex items-center gap-4 relative notification-dropdown">
+            {/* 🌙 / ☀️ Dark Mode Toggle */}
             <button
               onClick={toggleDarkMode}
               className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
@@ -125,6 +129,7 @@ const DashboardLayout = ({ children }) => {
               {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon />}
             </button>
 
+            {/* 🔔 Notifications */}
             <div className="relative">
               <button
                 onClick={handleBellClick}
@@ -153,22 +158,26 @@ const DashboardLayout = ({ children }) => {
                           <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                             {visit.visitor_name} ({visit.visitor_role})
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{visit.purpose}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {visit.purpose}
+                          </p>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="p-4 text-center text-gray-500 dark:text-gray-400">No new requests</p>
+                    <p className="p-4 text-center text-gray-500 dark:text-gray-400">
+                      No new requests
+                    </p>
                   )}
                 </div>
               )}
             </div>
 
-            <button className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-              <FaUserCircle />
-            </button>
+            {/* 👤 Profile Dropdown */}
+            <ProfileDropdown onOpenSettings={openSettings} />
           </div>
         </header>
+
 
         <main className="flex-1 p-6 overflow-auto">{children}</main>
         {/* ⚙️ HOD Settings Modal */}
