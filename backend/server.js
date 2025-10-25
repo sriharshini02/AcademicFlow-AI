@@ -5,10 +5,10 @@ import db from './models/index.js';
 
 import authRoutes from './routes/auth.routes.js';
 import hodAvailabilityRoutes from './routes/hodAvailability.routes.js';
-import todoRoutes from './routes/todo.js';
+import todoRoutes from './routes/todo.route.js';
 import visitLogsRoutes from './routes/visit_logs.routes.js';
-import hodStudentsRoutes from "./routes/hodStudents.js";
-
+import hodStudentsRoutes from "./routes/hodStudents.routes.js";
+import hodSettingsRoutes from "./routes/hodSettings.routes.js";
 
 dotenv.config();
 
@@ -49,6 +49,8 @@ authRoutes(app);
 
 // HOD availability routes (now require token)
 app.use('/api/hod/availability', hodAvailabilityRoutes);
+
+app.use("/api/hod", hodSettingsRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

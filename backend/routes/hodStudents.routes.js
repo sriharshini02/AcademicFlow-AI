@@ -1,6 +1,6 @@
 // routes/hodStudents.js
 import express from "express";
-import { getStudentsByDepartment, getStudentById,getHODStudents, getHODStudentDetails } from "../controllers/hodStudentsController.js";
+import { getStudentsByDepartment, getStudentById,getHODStudents, getHODStudentDetails } from "../controllers/hodStudents.controller.js";
 import { verifyToken } from "../middleware/authJwt.js";
 
 const router = express.Router();
