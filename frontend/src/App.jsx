@@ -4,10 +4,14 @@ import AuthForm from './components/AuthForm.jsx';
 import DashboardLayout from './components/DashboardLayout.jsx';
 import HODToDoList from './components/HODToDoList.jsx';
 import HODAppointments from './components/HODAppointments.jsx';
-import HODAvailabilityEditor from './components/HODAvailabilityEditor.jsx'; 
+import HODAvailabilityEditor from './components/HODAvailabilityEditor.jsx';
 import Appointments from "./components/Appointments.jsx";
 import HODHistory from "./components/HODHistory.jsx";
 import HODStudents from './components/HODStudents.jsx';
+import ProctorLayout from './components/ProctorLayout.jsx';
+import ProctorProfile from './components/ProctorProfile.jsx';
+import ProctorSettings from './components/ProctorSettings.jsx';
+import ProctorDashboard from './components/ProctorDashboard.jsx';
 // --- Authentication Context ---
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -39,7 +43,11 @@ const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
-    return <AuthContext.Provider value={{ token, user, login, logout }}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={{ token, user, login, logout }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 // --- Protected Route ---
@@ -65,28 +73,7 @@ const HODHome = () => (
     </div>
 );
 
-// --- Proctor Layout ---
-const ProctorLayout = ({ children }) => (
-    <div className="min-h-screen flex flex-col">
-        <header className="bg-blue-900 text-white p-4">Proctor Portal</header>
-        <div className="flex flex-1">
-            <aside className="w-60 bg-blue-100 p-4">
-                <ul>
-                    <li>👩‍🎓 Student Monitoring</li>
-                    <li>📊 Reports</li>
-                    <li>⚙️ Settings</li>
-                </ul>
-            </aside>
-            <main className="flex-1 p-6">{children}</main>
-        </div>
-    </div>
-);
 
-const ProctorDashboard = () => (
-    <ProctorLayout>
-        <h2 className="text-xl font-bold">Proctor Home Overview</h2>
-    </ProctorLayout>
-);
 
 // --- Main App ---
 const App = () => (
@@ -122,21 +109,42 @@ const App = () => (
                             </DashboardLayout>
                         }
                     />
-
                     <Route
                         path="/hod/history"
                         element={
                             <DashboardLayout>
-                            <HODHistory />
+                                <HODHistory />
                             </DashboardLayout>
                         }
-                        />
-
+                    />
                 </Route>
 
                 {/* Proctor Protected */}
                 <Route element={<ProtectedRoute allowedRoles={['Proctor']} />}>
-                    <Route path="/proctor/dashboard" element={<ProctorDashboard />} />
+                    <Route
+                        path="/proctor/dashboard"
+                        element={
+                            <ProctorLayout>
+                                <ProctorDashboard />
+                            </ProctorLayout>
+                        }
+                    />
+                    <Route
+                        path="/proctor/profile"
+                        element={
+                            <ProctorLayout>
+                                <ProctorProfile />
+                            </ProctorLayout>
+                        }
+                    />
+                    <Route
+                        path="/proctor/settings"
+                        element={
+                            <ProctorLayout>
+                                <ProctorSettings />
+                            </ProctorLayout>
+                        }
+                    />
                 </Route>
 
                 {/* Fallback */}
@@ -145,6 +153,5 @@ const App = () => (
         </AuthProvider>
     </Router>
 );
-
 
 export default App;
