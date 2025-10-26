@@ -12,6 +12,8 @@ import ProctorLayout from './components/ProctorLayout.jsx';
 import ProctorProfile from './components/ProctorProfile.jsx';
 import ProctorSettings from './components/ProctorSettings.jsx';
 import ProctorDashboard from './components/ProctorDashboard.jsx';
+import ProctorStudents from './components/ProctorStudents.jsx';
+
 // --- Authentication Context ---
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -126,6 +128,14 @@ const App = () => (
                         element={
                             <ProctorLayout>
                                 <ProctorDashboard />
+                            </ProctorLayout>
+                        }
+                    />
+                    <Route
+                        path="/proctor/students"
+                        element={
+                            <ProctorLayout>
+                                <ProctorStudents />
                             </ProctorLayout>
                         }
                     />

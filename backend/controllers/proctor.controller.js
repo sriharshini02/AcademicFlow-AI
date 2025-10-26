@@ -49,3 +49,24 @@ export const updateProctorProfile = async (req, res) => {
     res.status(500).json({ message: "Error updating profile" });
   }
 };
+
+export const getProctorStudents = async (req, res) => {
+  try {
+    const proctorId = req.userId;
+    console.log("Proctor ID from token:", proctorId);  // 🔹 add this
+
+    const students = await db.StudentCore.findAll({
+      where: { assigned_proctor_id: proctorId },
+      include: [
+        { model: db.StudentPersonalInfo },
+        { model: db.StudentAttendance },
+        { model: db.StudentAcademicScore }
+      ]
+    });
+    console.log("Students fetched:", students.length);  // 🔹 add this
+    res.json(students);
+  } catch (error) {
+    console.error("Error fetching proctor students:", error);
+    res.status(500).json({ error: "Failed to fetch students" });
+  }
+};
