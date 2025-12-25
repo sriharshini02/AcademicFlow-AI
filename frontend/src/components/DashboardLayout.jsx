@@ -1,212 +1,103 @@
-import React, { useEffect, useState } from "react";
-import { FaSun, FaMoon, FaBell, FaUserCircle } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaSun, FaMoon, FaBell, FaHome, FaCalendarAlt, FaUsers, FaHistory, FaSignOutAlt } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router-dom";
-import axios from "axios";
-import HODSettings from "./HODSettings";
 import ProfileDropdown from "./ProfileDropdown";
 
 const sidebarItems = [
-  { name: "Home", path: "/hod/dashboard" },
-  { name: "Appointments", path: "/hod/appointments" },
-  { name: "Students", path: "/hod/students" },
-  { name: "History", path: "/hod/history" },
+  { name: "Overview", path: "/hod/dashboard", icon: <FaHome /> },
+  { name: "Appointments", path: "/hod/appointments", icon: <FaCalendarAlt /> },
+  { name: "Student Records", path: "/hod/students", icon: <FaUsers /> },
+  { name: "Visit History", path: "/hod/history", icon: <FaHistory /> },
 ];
 
 const DashboardLayout = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(false);
-  const [newVisitors, setNewVisitors] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const token = localStorage.getItem("token");
+  const [darkMode, setDarkMode] = useState(true);
   const location = useLocation();
-  const [showSettings, setShowSettings] = useState(false);
-
-  const openSettings = () => setShowSettings(true);
-  const closeSettings = () => setShowSettings(false);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.body.classList.toggle("dark", !darkMode);
   };
 
-  // Fetch queued visitors
-  const fetchQueuedVisitors = async () => {
-    try {
-      const res = await axios.get("http://localhost:5000/api/visit_logs/queued", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setNewVisitors(res.data || []);
-    } catch (err) {
-      console.error("Failed to fetch queued visitors:", err.message);
-    }
-  };
-
-  useEffect(() => {
-    fetchQueuedVisitors();
-    const interval = setInterval(fetchQueuedVisitors, 10000);
-    return () => clearInterval(interval);
-  }, [token]);
-
-  const handleBellClick = () => setShowDropdown(!showDropdown);
-
-  useEffect(() => {
-    const handleClickOutside = async (e) => {
-      if (!e.target.closest(".notification-dropdown") && showDropdown) {
-        setShowDropdown(false);
-        if (newVisitors.length > 0) {
-          setTimeout(async () => {
-            try {
-              await axios.put(
-                "http://localhost:5000/api/visit_logs/acknowledge-new",
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              setNewVisitors([]);
-            } catch (err) {
-              console.error("Failed to acknowledge new requests:", err.message);
-            }
-          }, 3000);
-        }
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [newVisitors, showDropdown, token]);
-
   return (
-    <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
-      {/* Sidebar */}
-      <aside className="w-64 bg-indigo-600 text-white flex flex-col">
-        <div className="text-2xl font-bold p-6 border-b border-indigo-500">AcademicFlow</div>
-        <nav className="flex-1 flex flex-col gap-2 p-4">
+    <div className="h-screen w-full flex p-3 lg:p-4 gap-4 bg-[var(--neu-bg)] text-slate-800 dark:text-slate-200 overflow-hidden relative transition-all duration-500">
+      
+      {/* Background Glows for Dark Mode depth */}
+      <div className="hidden dark:block absolute top-0 left-0 w-full h-full pointer-events-none opacity-40">
+        <div className="absolute top-[-10%] right-[10%] w-[500px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full" />
+      </div>
 
-          {sidebarItems.map((item) =>
-            item.name === "Settings" ? (
-              <button
-                key={item.name}
-                onClick={openSettings}
-                className="px-4 py-2 rounded hover:bg-indigo-700 w-full text-left transition"
-              >
-                {item.name}
-              </button>
-            ) : (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                className={({ isActive }) =>
-                  `px-4 py-2 rounded hover:bg-indigo-700 transition ${
-                    isActive ? "bg-indigo-800 font-semibold" : ""
-                  }`
-                }
-              >
-                {item.name}
-              </NavLink>
-            )
-          )}
+      {/* --- SIDEBAR --- */}
+      <aside className="hidden lg:flex w-56 flex-col rounded-2xl neu-raised p-5 flex-shrink-0 ml-[-4px] relative z-10 
+                        dark:bg-white/[0.02] dark:backdrop-blur-xl dark:border-white/10">
+        <div className="mb-10 flex items-center gap-3 px-2">
+          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-lg">
+             <span className="font-bold text-lg">A</span>
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">ANVIS</h1>
+            <p className="text-[10px] text-slate-500 dark:text-cyan-400/80 font-medium mt-1">Academic Portal</p>
+          </div>
+        </div>
 
+        <nav className="flex-1 flex flex-col gap-2">
+          {sidebarItems.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                  isActive 
+                    ? "neu-inset text-indigo-600 dark:text-cyan-400 font-semibold" 
+                    : "text-slate-500 hover:text-indigo-500 dark:hover:text-white"
+                }`
+              }
+            >
+              <span className="text-lg opacity-80">{item.icon}</span>
+              <span className="text-sm font-medium">{item.name}</span>
+            </NavLink>
+          ))}
         </nav>
+
+        <div className="pt-4 border-t border-slate-300 dark:border-white/10">
+           <button className="flex items-center gap-3 px-4 py-3 w-full text-rose-500 font-semibold hover:bg-rose-500/10 rounded-xl transition-all text-sm">
+             <FaSignOutAlt />
+             <span>Logout</span>
+           </button>
+        </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col">
-        <header className="flex justify-between items-center p-4 bg-white dark:bg-gray-800 shadow">
-          <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-            {location.pathname === "/hod/dashboard"
-              ? "HOD Dashboard"
-              : location.pathname === "/hod/appointments"
-              ? "Appointments"
-              : location.pathname === "/hod/students"
-              ? "Students"
-              : "HOD Panel"}
-          </h1>
+      {/* --- MAIN CONTENT AREA --- */}
+      <div className="flex-1 flex flex-col gap-4 min-w-0 z-10">
+        
+        {/* Navbar: Header Heading - Fixed Typography */}
+        <header className="flex justify-between items-center px-8 py-4 rounded-xl neu-raised flex-shrink-0
+                         dark:bg-white/[0.02] dark:backdrop-blur-xl dark:border-white/10">
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
+            {sidebarItems.find(i => i.path === location.pathname)?.name || "Dashboard"}
+          </h2>
 
-          {/* ---------- RIGHT SECTION (Dark, Bell, Profile) ---------- */}
-          <div className="flex items-center gap-4 relative notification-dropdown">
-            {/* 🌙 / ☀️ Dark Mode Toggle */}
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            >
-              {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon />}
+          <div className="flex items-center gap-4">
+            <button onClick={toggleDarkMode} className="p-2.5 rounded-xl neu-raised active:neu-inset text-slate-600 dark:text-cyan-400 transition-all">
+              {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon className="text-indigo-600" />}
+            </button>
+            
+            <button className="p-2.5 rounded-xl neu-raised active:neu-inset text-slate-600 dark:text-cyan-400">
+              <FaBell />
             </button>
 
-            {/* 🔔 Notifications */}
-            <div className="relative">
-              <button
-                onClick={handleBellClick}
-                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition relative"
-              >
-                <FaBell />
-                {newVisitors.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    {newVisitors.length}
-                  </span>
-                )}
-              </button>
-
-              {showDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 shadow-lg rounded-lg border dark:border-gray-700 z-50">
-                  <div className="p-3 border-b dark:border-gray-700 font-semibold text-gray-700 dark:text-gray-200">
-                    Notifications
-                  </div>
-                  {newVisitors.length > 0 ? (
-                    <ul className="max-h-64 overflow-y-auto">
-                      {newVisitors.map((visit) => (
-                        <li
-                          key={visit.visit_id}
-                          className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                        >
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                            {visit.visitor_name} ({visit.visitor_role})
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {visit.purpose}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="p-4 text-center text-gray-500 dark:text-gray-400">
-                      No new requests
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 👤 Profile Dropdown */}
-            <ProfileDropdown onOpenSettings={openSettings} />
+            <div className="h-6 w-px bg-slate-300 dark:bg-white/10 mx-1" />
+            <ProfileDropdown />
           </div>
         </header>
 
-
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
-        {/* ⚙️ HOD Settings Modal */}
-{showSettings && (
-  <div
-    className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50"
-    onClick={closeSettings}
-  >
-    <div
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-3/4 max-h-[90vh] overflow-y-auto p-6 relative"
-      onClick={(e) => e.stopPropagation()} // Prevent modal close when clicking inside
-    >
-      <button
-        onClick={closeSettings}
-        className="absolute top-3 right-4 text-gray-600 hover:text-red-500 text-xl"
-      >
-        ✖
-      </button>
-
-      <h2 className="text-2xl font-bold mb-4 text-center text-gray-800 dark:text-gray-100">
-        HOD Settings
-      </h2>
-
-      {/* Render HODSettings component */}
-      <HODSettings onClose={closeSettings} />
-    </div>
-  </div>
-)}
-
+        {/* Body Area */}
+        <main className="flex-1 overflow-y-auto no-scrollbar min-h-0 bg-transparent">
+          <div className="pb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

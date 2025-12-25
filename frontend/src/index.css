@@ -2,16 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light mode default */
-body {
-  @apply bg-gray-100 text-gray-900;
+:root {
+  --neu-bg: #e7e9f5;
+  --neu-light: #ffffff;
+  --neu-dark: #cccfe3;
 }
 
-/* Optional dark mode */
-body.dark {
-  @apply bg-gray-900 text-gray-100;
+.dark {
+  --neu-bg: #0f121d; 
+  --neu-light: #242b3d; 
+  --neu-dark: #05060a;
+  --neon-cyan: rgba(34, 211, 238, 0.4);
 }
 
 body {
-  @apply transition-colors duration-300;
+  background-color: var(--neu-bg);
+  /* Using a standard professional sans-serif stack */
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  @apply transition-colors duration-500 antialiased overflow-hidden;
 }
+
+@layer components {
+  .neu-raised {
+    background: var(--neu-bg);
+    border-radius: 1rem;
+    box-shadow: 6px 6px 12px var(--neu-dark), 
+                -6px -6px 12px var(--neu-light);
+  }
+
+  .dark .neu-raised {
+    background: linear-gradient(145deg, #161b29, #0f121d);
+    box-shadow: 8px 8px 20px var(--neu-dark), 
+                -4px -4px 12px var(--neu-light);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .neu-inset {
+    background: var(--neu-bg);
+    border-radius: 0.75rem;
+    box-shadow: inset 4px 4px 8px var(--neu-dark), 
+                inset -4px -4px 8px var(--neu-light);
+  }
+
+  .dark .neu-inset {
+    background: #111522;
+    box-shadow: inset 4px 4px 8px var(--neu-dark), 
+                inset -4px -4px 10px var(--neu-light);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
