@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 const API_BASE_URL = 'http://localhost:5000/api/auth';
 const ANITS_LOGO = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSXxlD_GBa451W89CB4HBtNKLVdoJvj16dJmA&s";
 
+const BG_IMAGE = "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=2070&auto=format&fit=crop";
+
 const AuthForm = () => {
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({
@@ -52,132 +54,131 @@ const AuthForm = () => {
             } else {
                 setMessage('Account created! Please log in.');
                 setIsLogin(true);
+                setFormData(prev => ({ ...prev, name: '', password: '' }));
             }
         } catch (error) {
-            setMessage('Server unreachable. Please try again.');
+            setMessage('Server unreachable.');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center p-4 lg:p-10 font-sans relative"
-             style={{ 
-                background: 'linear-gradient(135deg, #60a5fa 0%, #7c3aed 100%)',
-             }}>
-            
-            {/* Main Centered Box */}
-            <div className="z-10 w-full max-w-5xl bg-[#1e293b]/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col lg:flex-row overflow-hidden border border-white/20">
-                
-                {/* LEFT PANEL: The Interaction Side */}
-                <div className="w-full lg:w-[55%] flex flex-col p-10 lg:p-14 justify-center">
-                    <div className="flex items-center gap-3 mb-10">
-                        <img src={ANITS_LOGO} alt="ANITS" className="h-10 w-10 rounded-xl shadow-md bg-white p-1" />
-                        <span className="text-xl font-bold text-white tracking-tight">ANITS Portal</span>
-                    </div>
+        <div className="h-screen w-full flex items-center justify-end font-sans relative overflow-hidden bg-slate-900 selection:bg-indigo-100">
+            {/* Professional Background with Gradient Overlay */}
+            <div 
+                className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-all duration-1000"
+                style={{ backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.5)), url('${BG_IMAGE}')` }}
+            ></div>
 
-                    <div className="mb-8">
-                        <h2 className="text-4xl font-bold text-white mb-2">
-                            {isLogin ? 'Welcome Back' : 'Get Started'}
+            {/* Left Content Area */}
+            <div className="hidden lg:flex flex-col justify-center p-20 z-10 w-1/2 h-full text-white pb-32">
+                <div className="flex items-center gap-3 mb-10">
+                    <img src={ANITS_LOGO} alt="ANITS" className="h-10 w-10 rounded-lg shadow-2xl bg-white p-0.5" />
+                    <span className="text-2xl font-bold tracking-[0.4em] uppercase opacity-90">ANVIS</span>
+                </div>
+                
+                <h1 className="text-4xl xl:text-5xl font-black leading-[1.3] mb-12 drop-shadow-2xl">
+                    Smart Interaction. <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 font-extrabold">Centralized Data.</span>
+                </h1>
+                
+                <p className="text-lg text-slate-300 max-w-lg font-medium leading-relaxed mb-16 opacity-80">
+                    Bridging the gap between parents and faculty with AI-powered bot notifications and real-time student insights for HODs and Proctors.
+                </p>
+                
+                <div className="flex gap-12 border-l-2 border-cyan-500 pl-8 py-3">
+                    <div className="group">
+                        <p className="text-cyan-400 font-black text-2xl leading-none group-hover:scale-110 transition-transform">98%</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold mt-2">Bot Accuracy</p>
+                    </div>
+                    <div className="group">
+                        <p className="text-cyan-400 font-black text-2xl leading-none group-hover:scale-110 transition-transform">Instant</p>
+                        <p className="text-slate-400 text-[10px] uppercase tracking-[0.2em] font-bold mt-2">System Alerts</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Floating Auth Card */}
+            <div className="relative z-20 w-full lg:w-[48%] h-full flex items-center justify-center lg:justify-start lg:pr-12 xl:pr-24">
+                <div className="w-full max-w-[480px] bg-white rounded-[2.5rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.7)] p-10 lg:p-14 animate-in fade-in zoom-in duration-500">
+                    
+                    <div className="mb-12">
+                        <h2 className="text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">
+                            {isLogin ? 'Welcome Back' : 'Create Account'}
                         </h2>
-                        <p className="text-slate-300 text-base font-medium">
-                            {isLogin ? 'Sign in to access student data.' : 'Join the academic proctoring network.'}
+                        <p className="text-slate-400 text-sm font-medium">
+                            {isLogin ? 'Sign in to access the ANVIS dashboard.' : 'Register as HOD or Proctor to join the portal.'}
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {message && (
-                            <div className="p-3 text-sm rounded-xl bg-red-500/20 border border-red-500/30 text-red-200">
+                            <div className={`p-3 text-[10px] rounded-xl font-black uppercase tracking-widest border text-center ${
+                                message.includes('success') || message.includes('created') 
+                                ? 'bg-emerald-50 border-emerald-100 text-emerald-600' 
+                                : 'bg-rose-50 border-rose-100 text-rose-600'
+                            }`}>
                                 {message}
                             </div>
                         )}
 
-                        {/* Registration Grid / Login Stack */}
-                        <div className={isLogin ? "space-y-6" : "grid grid-cols-1 md:grid-cols-2 gap-4"}>
+                        <div className="space-y-5">
+                            {/* Signup Only: Name */}
                             {!isLogin && (
-                                <div className="space-y-2">
-                                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold ml-1">Full Name</label>
+                                <div className="space-y-1.5 w-full">
+                                    <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black ml-1">Full Name</label>
                                     <input name="name" type="text" required value={formData.name} onChange={handleChange}
-                                        placeholder="Enter your name"
-                                        className="w-full px-5 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-white text-sm outline-none focus:border-blue-400 transition-all placeholder:text-slate-500" />
+                                        placeholder="Full Name"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all" />
                                 </div>
                             )}
 
-                            <div className="space-y-2">
-                                <label className="text-xs uppercase tracking-widest text-slate-400 font-bold ml-1">Email Address</label>
+                            {/* Email Row */}
+                            <div className="space-y-1.5 w-full">
+                                <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black ml-1">Email Address</label>
                                 <input name="email" type="email" required value={formData.email} onChange={handleChange}
-                                    placeholder="yourname@anits.edu.in"
-                                    className="w-full px-5 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-white text-sm outline-none focus:border-blue-400 transition-all placeholder:text-slate-500" />
+                                    placeholder="name@anits.edu.in"
+                                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all" />
                             </div>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center px-1">
-                                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold">Password</label>
-                                    {isLogin && <button type="button" className="text-xs text-blue-400 hover:underline">Forgot?</button>}
-                                </div>
-                                <input name="password" type="password" required value={formData.password} onChange={handleChange}
-                                    placeholder="••••••••"
-                                    className="w-full px-5 py-3.5 bg-slate-800/50 border border-slate-700 rounded-2xl text-white text-sm outline-none focus:border-blue-400 transition-all placeholder:text-slate-500" />
-                            </div>
+                            {/* Conditional Layout: Login is stacked, Signup is side-by-side */}
+                            <div className={isLogin ? "space-y-5" : "grid grid-cols-2 gap-4"}>
+                                {!isLogin && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black ml-1">Account Role</label>
+                                        <select name="role" value={formData.role} onChange={handleChange}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all appearance-none cursor-pointer">
+                                            <option value="Proctor">Proctor</option>
+                                            <option value="HOD">HOD</option>
+                                        </select>
+                                    </div>
+                                )}
 
-                            {!isLogin && (
-                                <div className="space-y-2">
-                                    <label className="text-xs uppercase tracking-widest text-slate-400 font-bold ml-1">Academic Role</label>
-                                    <select name="role" value={formData.role} onChange={handleChange}
-                                        className="w-full px-5 py-3.5 bg-slate-800 border border-slate-700 rounded-2xl text-white text-sm outline-none focus:border-blue-400 transition-all appearance-none cursor-pointer">
-                                        <option value="Proctor">Proctor</option>
-                                        <option value="HOD">HOD</option>
-                                    </select>
+                                <div className="space-y-1.5">
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-[10px] uppercase tracking-widest text-slate-400 font-black">Password</label>
+                                        {isLogin && <button type="button" className="text-[10px] text-cyan-600 font-bold hover:underline">Forgot?</button>}
+                                    </div>
+                                    <input name="password" type="password" required value={formData.password} onChange={handleChange}
+                                        placeholder="••••••••"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-sm outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all" />
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         <button type="submit" disabled={loading}
-                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white font-bold rounded-2xl text-sm transition-all active:scale-[0.98] shadow-lg shadow-blue-500/20">
-                            {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Sign Up'}
+                            className="w-full py-4 bg-slate-900 hover:bg-black text-white font-bold rounded-xl text-xs tracking-[0.2em] uppercase transition-all active:scale-[0.98] shadow-2xl shadow-slate-300 mt-4">
+                            {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Register')}
                         </button>
 
-                        <p className="text-center text-sm text-slate-400 mt-4">
-                            {isLogin ? "Need an account?" : "Already a member?"}{' '}
-                            <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-blue-400 font-bold hover:underline">
-                                {isLogin ? 'Sign Up' : 'Log In'}
+                        <p className="text-center text-sm text-slate-500 mt-10 font-medium">
+                            {isLogin ? "Need access?" : "Already a user?"}{' '}
+                            <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-cyan-600 font-bold hover:underline ml-1">
+                                {isLogin ? 'Create an account' : 'Sign in here'}
                             </button>
                         </p>
                     </form>
-                </div>
-
-                {/* RIGHT PANEL: Visual Branding Side */}
-                <div className="hidden lg:flex lg:w-[45%] bg-[#0f172a]/60 p-12 flex-col justify-between relative border-l border-white/5">
-                    <div className="z-20">
-                        <div className="h-12 w-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-400 mb-6">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                            </svg>
-                        </div>
-                        <h3 className="text-4xl font-bold text-white leading-tight">
-                            Insights for <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Student Success.</span>
-                        </h3>
-                    </div>
-
-                    <div className="z-20 p-8 rounded-[2rem] bg-white/[0.05] border border-white/10 backdrop-blur-md">
-                        <div className="text-blue-400 mb-4 font-serif text-4xl leading-none">“</div>
-                        <p className="text-slate-200 text-sm italic leading-relaxed mb-6">
-                            Transforming fragmented student records into actionable insights. Empower your proctoring with data-driven conversations.
-                        </p>
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 p-[2px]">
-                                <div className="h-full w-full rounded-full bg-[#0f172a] flex items-center justify-center text-[10px] font-bold text-white uppercase">Admin</div>
-                            </div>
-                            <div>
-                                <p className="text-white text-xs font-bold">Academic Council</p>
-                                <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Official System</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Decorative Background Blob behind right panel text */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px] pointer-events-none"></div>
                 </div>
             </div>
         </div>
