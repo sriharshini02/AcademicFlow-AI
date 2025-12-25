@@ -66,12 +66,23 @@ const ProtectedRoute = ({ allowedRoles }) => {
 };
 
 // --- HOD Inner Pages ---
+// --- HOD Home View ---
 const HODHome = () => (
-    <div className="space-y-8">
-        <h2 className="text-2xl font-semibold text-gray-800 border-b pb-2 mb-4">Overview</h2>
-        <HODAvailabilityEditor />
-        <HODToDoList />
-        <HODAppointments />
+    <div className="space-y-6 lg:space-y-10">
+        {/* Availability Editor - Tactile status management */}
+        <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <HODAvailabilityEditor />
+        </section>
+
+        {/* Actionable items and visitor queue */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-10">
+            <section className="animate-in fade-in slide-in-from-bottom-3 duration-700">
+                <HODToDoList />
+            </section>
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <HODAppointments />
+            </section>
+        </div>
     </div>
 );
 
