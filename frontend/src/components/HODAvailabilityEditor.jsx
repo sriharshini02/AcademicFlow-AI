@@ -68,10 +68,10 @@ const HODAvailabilityEditor = () => {
   if (loading) return <div className="p-10 text-center text-slate-400 font-bold italic">Initialising...</div>;
 
   return (
-    /* Tightened overall padding (p-5) and reduced height behavior */
-    <div className="academic-status-card rounded-[1.5rem] p-5 h-full flex flex-col border border-white/10 shadow-2xl transition-all">
+    /* h-fit prevents the card from stretching vertically to match the Task Queue */
+    <div className="academic-status-card rounded-[1.5rem] p-5 h-fit w-full max-w-md flex flex-col border border-white/10 shadow-2xl transition-all self-start">
       
-      {/* 1. COMPACT HEADER */}
+      {/* 1. Header: Fixed Toggle Animation */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-xl bg-white/10 ${status.is_available ? 'text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'text-rose-400'}`}>
@@ -79,20 +79,23 @@ const HODAvailabilityEditor = () => {
           </div>
           <div>
             <h3 className="text-[9px] font-black uppercase tracking-widest text-cyan-300 opacity-60">Status</h3>
-            <p className="text-sm font-black text-white leading-none">
+            <p className="text-sm font-black text-white leading-none tracking-tight">
               {status.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}
             </p>
           </div>
         </div>
         
-        <button onClick={handleToggle} className="w-10 h-5 rounded-full p-1 bg-white/10 relative shadow-inner shrink-0">
-          <div className={`absolute top-0.5 h-4 w-4 rounded-full shadow-lg transition-all duration-300 ${status.is_available ? 'left-5.5 bg-cyan-400' : 'left-0.5 bg-rose-500'}`} />
+        {/* Toggle Switch with fixed translation logic */}
+        <button 
+          onClick={handleToggle} 
+          className={`w-11 h-6 rounded-full p-1 transition-colors duration-300 relative shadow-inner shrink-0 ${status.is_available ? 'bg-cyan-500/20' : 'bg-rose-500/20'}`}
+        >
+          <div className={`h-4 w-4 rounded-full shadow-lg transition-all duration-300 transform ${status.is_available ? 'translate-x-5 bg-cyan-400' : 'translate-x-0 bg-rose-500'}`} />
         </button>
       </div>
 
-      {/* 2. OPTIMIZED FIELDS ROW */}
-      <div className="space-y-3 flex-1">
-        {/* Message Input: Increased Brightness/Font and minimized height */}
+      {/* 2. Optimized Fields */}
+      <div className="space-y-3">
         <div className="p-3 rounded-xl bg-white/5 border border-white/10">
           <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5 mb-1">
             <MessageSquare size={10} className="text-cyan-400" /> Message
@@ -100,16 +103,15 @@ const HODAvailabilityEditor = () => {
           <textarea 
             name="status_message" value={status.status_message} 
             onChange={(e) => setStatus({...status, status_message: e.target.value})}
-            className="w-full h-10 bg-transparent border-none outline-none text-sm font-bold text-white placeholder-slate-500 resize-none leading-snug brightness-125 transition-all"
+            className="w-full h-10 bg-transparent border-none outline-none text-sm font-bold text-white placeholder-slate-500 resize-none leading-snug brightness-125"
             placeholder="System status..."
           />
         </div>
 
-        {/* Time Field: Reduced Width (w-3/5) and Aligned */}
         {!status.is_available && (
           <div className="p-3 rounded-xl bg-white/5 border border-white/10 w-3/5 animate-in slide-in-from-top-1 duration-300">
             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5 mb-1">
-              <Clock size={10} className="text-indigo-400" /> Return Time
+              <Clock size={10} className="text-indigo-400" /> Return
             </label>
             <input 
               type="time" name="estimated_return_time" value={status.estimated_return_time}
@@ -120,15 +122,15 @@ const HODAvailabilityEditor = () => {
         )}
       </div>
 
-      {/* 3. FOOTER: Reduced Button Width (w-2/3) & Brighter Success Message */}
+      {/* 3. Footer: Brighter Success Label */}
       <div className="mt-4 flex flex-col items-center gap-3">
         <button 
           onClick={() => handleUpdate(status)}
           disabled={isSaving}
-          className="btn-vivid w-2/3 py-2 rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform shadow-lg"
+          className="btn-vivid w-2/3 py-2 rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform"
         >
           {isSaving ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
-          <span className="text-[9px] font-black tracking-widest">SAVE STATUS</span>
+          <span className="text-[9px] font-black tracking-widest uppercase">Save Status</span>
         </button>
 
         {message && (

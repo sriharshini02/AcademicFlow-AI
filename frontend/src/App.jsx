@@ -67,21 +67,31 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
 // --- HOD Home View ---
 const HODHome = () => (
-    <div className="space-y-6 lg:space-y-8">
-        {/* Top Row: Availability and Tasks share the space side-by-side */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 items-start">
+        
+        {/* LEFT COLUMN: Stacked Availability and Pending */}
+        <div className="flex flex-col gap-6 lg:gap-8">
             <section className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <HODAvailabilityEditor />
             </section>
-            <section className="animate-in fade-in slide-in-from-bottom-3 duration-700">
-                <HODToDoList />
+            
+            {/* We pass a prop to HODAppointments to only show Pending here */}
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <HODAppointments view="left_stack" />
             </section>
         </div>
 
-        {/* Bottom Row: Appointments takes full width for maximum detail visibility */}
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000 w-full">
-            <HODAppointments />
-        </section>
+        {/* RIGHT COLUMN: Task Queue and Scheduled Stack */}
+        <div className="flex flex-col gap-6 lg:gap-8">
+            <section className="animate-in fade-in slide-in-from-bottom-3 duration-700">
+                <HODToDoList />
+            </section>
+            
+            {/* Scheduled visits can go here or remain in the combined component */}
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <HODAppointments view="right_stack" />
+            </section>
+        </div>
     </div>
 );
 
