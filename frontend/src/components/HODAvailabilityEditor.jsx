@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Clock, MessageSquare, Loader, Save } from 'lucide-react';
+import { Clock, MessageSquare, Loader, Save, Power, BellRing } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 
 const API_BASE_URL = 'http://localhost:5000/api/hod/availability';
@@ -16,17 +16,16 @@ const HODAvailabilityEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
 
+  // --- Restored: Helper to format ISO time for <input type="time"> ---
   const formatTimeForInput = (time) => {
     if (!time) return '';
     const date = new Date(time);
-    if (isNaN(date.getTime())) return ''; // ❌ catch invalid
+    if (isNaN(date.getTime())) return ''; 
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
     return `${hours}:${minutes}`;
   };
 
-
-  // --- Fetch HOD Status ---
   const fetchStatus = async () => {
     if (!token) return;
     setLoading(true);
@@ -34,231 +33,107 @@ const HODAvailabilityEditor = () => {
       const { data } = await axios.get(API_BASE_URL, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      // Ensure frontend always gets HH:MM string
       setStatus({
         ...data,
-        estimated_return_time: data.estimated_return_time
-          ? formatTimeForInput(data.estimated_return_time)
-          : '',
+        estimated_return_time: data.estimated_return_time ? formatTimeForInput(data.estimated_return_time) : '',
       });
-      setMessage('');
-    } catch (error) {
-      console.error('Error fetching HOD status:', error);
-      setMessage('Failed to load availability status.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchStatus();
-  }, [token]);
+  useEffect(() => { fetchStatus(); }, [token]);
 
-const handleUpdate = async (updateData) => {
-  if (!token) return;
-  setIsSaving(true);
-  setMessage('');
+  const handleUpdate = async (updateData) => {
+    if (!token) return;
+    setIsSaving(true);
+    let safeTime = updateData.estimated_return_time || '12:00';
+    const [hours, minutes] = safeTime.split(':').map(Number);
+    const localDate = new Date();
+    localDate.setHours(hours, minutes, 0, 0);
 
-  // 🛡️ Step 1: Ensure valid HH:mm format
-  let safeTime = updateData.estimated_return_time || '12:00';
-  if (!/^\d{2}:\d{2}$/.test(safeTime)) {
-    console.warn('Invalid time format detected, defaulting to 12:00');
-    safeTime = '12:00';
-  }
-
-  // 🕒 Step 2: Construct ISO string preserving local time (no UTC drift)
-  const [hours, minutes] = safeTime.split(':').map(Number);
-  const localDate = new Date();
-  localDate.setHours(hours, minutes, 0, 0);
-  
-  // This ensures DB always gets consistent ISO timestamp
-  const isoTime = localDate.toISOString();
-
-  const safeData = {
-    ...updateData,
-    estimated_return_time: isoTime, // Send clean ISO format to backend
+    try {
+      await axios.put(API_BASE_URL, { ...updateData, estimated_return_time: localDate.toISOString() }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setMessage('Status Synced Successfully');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) { setMessage('Error saving status'); } finally { setIsSaving(false); }
   };
 
-  // 🧼 Step 3: Keep UI-friendly HH:mm in React state
-  setStatus({ ...updateData, estimated_return_time: safeTime });
-
-  try {
-    await axios.put(API_BASE_URL, safeData, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setMessage('Status updated successfully!');
-  } catch (error) {
-    console.error('Error saving HOD status:', error.response?.data?.message || error.message);
-    setMessage('Error: Could not save status.');
-  } finally {
-    setIsSaving(false);
-  }
-};
-
-
-
-  // --- Toggle Availability ---
   const handleToggle = () => {
-  const newState = !status.is_available;
-  const updatedStatus = {
-    ...status,
-    is_available: newState,
-    status_message: newState
-      ? 'Available for interactions.'
-      : status.status_message || 'In a meeting/Unavailable.',
-    estimated_return_time: newState ? '12:00' : status.estimated_return_time || '12:00',
-  };
-  setStatus(updatedStatus);  // optimistic update
-  handleUpdate(updatedStatus); // send PUT with latest data
-};
-
-  // --- Handle Input Changes ---
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setStatus((prev) => ({ ...prev, [name]: value }));
+    const newState = !status.is_available;
+    const updated = { ...status, is_available: newState };
+    setStatus(updated);
+    handleUpdate(updated);
   };
 
-  if (loading)
-    return (
-      <div className="p-6 text-center text-gray-500 flex items-center justify-center border rounded-xl bg-white">
-        <Loader className="w-5 h-5 animate-spin mr-2" /> Loading Availability...
-      </div>
-    );
+  if (loading) return <div className="p-10 text-center text-slate-400 font-bold">Initializing Availability...</div>;
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-200 space-y-6">
-      {/* Availability Widget */}
-      <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-bold mb-2">Current Availability</h3>
-        <p>
-          Status:{' '}
-          <span
-            className={`ml-2 font-semibold ${
-              status.is_available ? 'text-green-600' : 'text-red-600'
-            }`}
-          >
-            {status.is_available ? 'Available' : 'Unavailable'}
-          </span>
-        </p>
-        {status.status_message && (
-          <p className="text-gray-600 mt-1">{status.status_message}</p>
-        )}
-        {status.estimated_return_time && (
-          <p className="text-sm text-gray-500">
-            Back at: {status.estimated_return_time}
+    <div className="academic-status-card rounded-[2rem] p-8 flex flex-col lg:flex-row gap-8 items-center border border-white/10">
+      
+      {/* 1. Availability Status Header */}
+      <div className="flex items-center gap-6 min-w-[280px]">
+        <div className={`p-4 rounded-2xl bg-white/10 border border-white/10 shadow-inner ${status.is_available ? 'text-cyan-400' : 'text-rose-400'}`}>
+          <Power size={32} strokeWidth={3} />
+        </div>
+        <div>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300 opacity-70 mb-1">Availability Status</h3>
+          <p className="text-2xl font-black text-white tracking-tight">
+            Status: {status.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}
           </p>
-        )}
+        </div>
       </div>
 
-      {message && (
-        <div
-          className={`p-3 text-sm rounded-lg ${
-            message.includes('success')
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
-          }`}
-        >
-          {message}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-        {/* Toggle */}
-        <div className="col-span-1 border-r md:pr-6 border-gray-100">
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                className="sr-only"
-                checked={status.is_available}
-                onChange={handleToggle}
-                disabled={isSaving}
-              />
-              <div
-                className={`block w-14 h-8 rounded-full transition-colors ${
-                  status.is_available ? 'bg-green-500' : 'bg-red-500'
-                }`}
-              ></div>
-              <div
-                className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
-                  status.is_available ? 'translate-x-full' : 'translate-x-0'
-                }`}
-              ></div>
-            </div>
-            <div className="font-medium text-gray-800">
-              Status:{' '}
-              <span
-                className={`font-bold ${
-                  status.is_available ? 'text-green-600' : 'text-red-600'
-                }`}
-              >
-                {status.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}
-              </span>
-            </div>
+      {/* 2. Form Inputs with High Contrast Inset */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-300 ml-1 flex items-center gap-2">
+            <MessageSquare size={14} className="text-cyan-400" /> Custom Status Message
           </label>
-        </div>
-
-        {/* Status Message Input */}
-        <div className="col-span-1">
-          <label
-            htmlFor="status_message"
-            className="block text-sm font-medium text-gray-700 mb-2 flex items-center"
-          >
-            <MessageSquare className="w-4 h-4 mr-2 text-indigo-500" /> Custom
-            Status Message
-          </label>
-          <textarea
-            id="status_message"
-            name="status_message"
-            value={status.status_message}
-            onChange={handleChange}
-            className="w-full h-16 p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm resize-none"
-            placeholder="e.g., At a faculty meeting, out to lunch..."
+          <textarea 
+            name="status_message" value={status.status_message} 
+            onChange={(e) => setStatus({...status, status_message: e.target.value})}
+            className="w-full h-20 p-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-slate-100 outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all resize-none"
+            placeholder="Available for interactions..."
           />
         </div>
 
-        {/* Estimated Return Time */}
-        {!status.is_available && (
-          <div className="col-span-1">
-            <label
-              htmlFor="estimated_return_time"
-              className="block text-sm font-medium text-gray-700 mb-2 flex items-center"
-            >
-              <Clock className="w-4 h-4 mr-2 text-indigo-500" /> Est. Return Time
+        <div className="flex flex-col justify-between">
+          <div className={`space-y-2 transition-all duration-300 ${status.is_available ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-300 ml-1 flex items-center gap-2">
+              <Clock size={14} className="text-indigo-400" /> Est. Return Time
             </label>
-            <input
-              type="time"
-              id="estimated_return_time"
-              name="estimated_return_time"
-              value={status.estimated_return_time || '12:00'}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            <input 
+              type="time" name="estimated_return_time" value={status.estimated_return_time}
+              onChange={(e) => setStatus({...status, estimated_return_time: e.target.value})}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
             />
-            <p className="text-xs text-gray-400 mt-1">
-              Only functional when status is UNAVAILABLE.
-            </p>
           </div>
-        )}
 
+          {/* Toggle and Sync Message Area */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-3">
+               <button onClick={handleToggle} className="w-14 h-7 rounded-full p-1 bg-white/10 border border-white/5 relative shadow-inner">
+                  <div className={`absolute top-1 h-5 w-5 rounded-full shadow-lg transition-all duration-500 ${status.is_available ? 'left-8 bg-cyan-400' : 'left-1 bg-rose-500'}`} />
+               </button>
+               <span className={`text-[10px] font-black uppercase tracking-widest ${status.is_available ? 'text-cyan-400' : 'text-rose-400'}`}>
+                 {status.is_available ? 'Interaction Active' : 'Do Not Disturb'}
+               </span>
+            </div>
+            {message && <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">{message}</span>}
+          </div>
+        </div>
       </div>
 
-      {/* Save Button */}
-      <div className="mt-6 border-t pt-4 flex justify-end">
-        <button
-          onClick={() => handleUpdate(status)}
-          disabled={isSaving}
-          className={`px-6 py-2 rounded-lg text-white font-medium transition-colors flex items-center ${
-            isSaving ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-          }`}
-        >
-          {isSaving ? (
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          {isSaving ? 'Saving...' : 'Save Custom Status'}
-        </button>
-      </div>
+      {/* 3. Primary Action Button */}
+      <button 
+        onClick={() => handleUpdate(status)}
+        disabled={isSaving}
+        className="btn-vivid px-6 py-10 rounded-3xl flex flex-col items-center justify-center gap-3 min-w-[150px]"
+      >
+        {isSaving ? <Loader className="animate-spin" /> : <Save size={24} />}
+        <span className="text-[10px] text-center">Save Custom Status</span>
+      </button>
     </div>
   );
 };

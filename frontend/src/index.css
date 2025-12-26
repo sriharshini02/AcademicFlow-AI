@@ -3,21 +3,22 @@
 @tailwind utilities;
 
 :root {
-  --neu-bg: #e7e9f5;
+  /* Changed to a much lighter, whiter soft-gray/pearl base */
+  --neu-bg: #f8fafc;    
   --neu-light: #ffffff;
-  --neu-dark: #cccfe3;
+  /* Adjusted shadow color to match the whiter base */
+  --neu-dark: #e2e8f0;  
 }
 
 .dark {
-  --neu-bg: #0f121d; 
-  --neu-light: #242b3d; 
+  --neu-bg: #0f121d;
+  --neu-light: #242b3d;
   --neu-dark: #05060a;
   --neon-cyan: rgba(34, 211, 238, 0.4);
 }
 
 body {
   background-color: var(--neu-bg);
-  /* Using a standard professional sans-serif stack */
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   @apply transition-colors duration-500 antialiased overflow-hidden;
 }
@@ -49,6 +50,17 @@ body {
     box-shadow: inset 4px 4px 8px var(--neu-dark), 
                 inset -4px -4px 10px var(--neu-light);
     border: 1px solid rgba(34, 211, 238, 0.2);
+  }
+
+  .academic-status-card {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    box-shadow: 0 20px 40px -12px rgba(30, 27, 75, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .btn-vivid {
+    background: linear-gradient(90deg, #22d3ee 0%, #6366f1 100%);
+    @apply shadow-lg hover:brightness-110 active:scale-95 transition-all text-white font-black uppercase tracking-widest;
   }
 }
 
