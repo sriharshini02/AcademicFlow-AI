@@ -9,7 +9,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import enUS from "date-fns/locale/en-US";
 import { 
   LayoutList, Calendar as CalendarIcon, Clock, CheckCircle, 
-  XCircle, AlertCircle, Filter, User, MessageSquare 
+  XCircle, AlertCircle, Filter, User, MessageSquare, ArrowRight 
 } from "lucide-react";
 
 // --- Calendar Setup ---
@@ -21,10 +21,6 @@ const Appointments = () => {
   const [filter, setFilter] = useState("All");
   const [viewMode, setViewMode] = useState("list");
   const [selected, setSelected] = useState(null);
-
-  // --- 1. NEW: Calendar Control State (Fixes the buttons) ---
-  const [date, setDate] = useState(new Date());
-  const [calView, setCalView] = useState("month");
 
   // Modal States
   const [showNotesModal, setShowNotesModal] = useState(false);
@@ -50,15 +46,17 @@ const Appointments = () => {
 
   useEffect(() => { fetchAppointments(); }, []);
 
-  // --- Prepare Data for Calendar ---
+  // --- Helpers ---
+  const now = new Date();
+  
+  // Calendar Data Prep
   const calendarEvents = appointments
     .filter(app => app.scheduled_time || app.check_in_time)
     .map(app => {
       const startDate = new Date(app.scheduled_time || app.check_in_time);
       const endDate = new Date(startDate.getTime() + 30 * 60000); 
-
       return {
-        title: `${app.visitor_name} (${app.purpose})`,
+        title: `${app.visitor_name}`,
         start: startDate,
         end: endDate,
         resource: app,
@@ -66,42 +64,42 @@ const Appointments = () => {
       };
     });
 
-  // --- Style Calendar Events ---
   const eventStyleGetter = (event) => {
-    let backgroundColor = '#6366f1'; // Indigo
-    if (event.status === 'Pending') backgroundColor = '#f59e0b'; // Amber
-    if (event.status === 'Completed') backgroundColor = '#10b981'; // Emerald
-    if (event.status === 'Cancelled') backgroundColor = '#ef4444'; // Rose
-    
-    return {
-      style: {
-        backgroundColor,
-        borderRadius: '6px',
-        opacity: 0.9,
-        color: 'white',
-        border: '0px',
-        display: 'block',
-        fontSize: '10px',
-        fontWeight: 'bold',
-        padding: '2px 5px'
-      }
-    };
+    let backgroundColor = '#6366f1'; 
+    if (event.status === 'Pending') backgroundColor = '#f59e0b';
+    if (event.status === 'Completed') backgroundColor = '#10b981';
+    if (event.status === 'Cancelled') backgroundColor = '#ef4444';
+    return { style: { backgroundColor, borderRadius: '6px', opacity: 0.9, color: 'white', border: '0px', fontSize: '10px', fontWeight: 'bold' } };
   };
 
-  // --- Helpers ---
-  const now = new Date();
-  const filtered = appointments.filter((a) => {
-    const scheduledTime = a.scheduled_time ? new Date(a.scheduled_time) : null;
-    switch (filter) {
-      case "Upcoming": return a.action_taken === "Scheduled" && scheduledTime && scheduledTime > now;
-      case "Missed": return a.action_taken === "Scheduled" && scheduledTime && scheduledTime < now;
-      case "Pending":
-      case "Scheduled":
-      case "Completed":
-      case "Cancelled": return a.action_taken === filter;
-      default: return true;
-    }
-  });
+  // --- FILTERING & SORTING LOGIC ---
+  const filtered = appointments
+    .filter((a) => {
+      const scheduledTime = a.scheduled_time ? new Date(a.scheduled_time) : null;
+      switch (filter) {
+        case "Upcoming": return a.action_taken === "Scheduled" && scheduledTime && scheduledTime > now;
+        case "Missed": return a.action_taken === "Scheduled" && scheduledTime && scheduledTime < now;
+        case "Pending":
+        case "Scheduled":
+        case "Completed":
+        case "Cancelled": return a.action_taken === filter;
+        default: return true;
+      }
+    })
+    .sort((a, b) => {
+      // 1. Get the effective date for comparison (Scheduled time takes priority over Check-in time)
+      const dateA = new Date(a.scheduled_time || a.check_in_time);
+      const dateB = new Date(b.scheduled_time || b.check_in_time);
+
+      // 2. Sort Logic:
+      // If filtering "Upcoming", we usually want the SOONEST date first (Ascending).
+      // For everything else (History, Pending, All), we want the NEWEST/LATEST date first (Descending).
+      if (filter === "Upcoming") {
+        return dateA - dateB; // Ascending: Nearest future date first
+      } else {
+        return dateB - dateA; // Descending: Newest/Furthest future date first
+      }
+    });
 
   const handleAction = async (visit_id, action, hod_notes = null, scheduled_time = null) => {
     try {
@@ -111,11 +109,7 @@ const Appointments = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setAppointments((prev) =>
-        prev.map((a) =>
-          a.visit_id === visit_id
-            ? { ...a, action_taken: action, scheduled_time, hod_notes }
-            : a
-        )
+        prev.map((a) => a.visit_id === visit_id ? { ...a, action_taken: action, scheduled_time, hod_notes } : a)
       );
     } catch (err) { console.error(`Failed to ${action}:`, err.message); }
   };
@@ -138,41 +132,39 @@ const Appointments = () => {
     if (app.action_taken !== "Scheduled" || !app.scheduled_time) return null;
     const scheduled = new Date(app.scheduled_time);
     const diffMinutes = (scheduled - now) / (1000 * 60);
-    if (diffMinutes >= -1 && diffMinutes <= 30) return <span className="text-amber-600 font-bold text-[10px] animate-pulse flex items-center gap-1"><AlertCircle size={10}/> SOON</span>;
-    if (diffMinutes < -1) return <span className="text-rose-500 font-bold text-[10px] flex items-center gap-1"><XCircle size={10}/> MISSED</span>;
+    if (diffMinutes >= -1 && diffMinutes <= 30) return <span className="px-2 py-1 rounded-md bg-amber-100 text-amber-700 font-bold text-[10px] animate-pulse flex items-center gap-1 border border-amber-200"><AlertCircle size={10}/> SOON</span>;
+    if (diffMinutes < -1) return <span className="px-2 py-1 rounded-md bg-rose-100 text-rose-600 font-bold text-[10px] flex items-center gap-1 border border-rose-200"><XCircle size={10}/> MISSED</span>;
     return null;
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Pending": return "text-amber-500 border-amber-500/20 bg-amber-50 dark:bg-amber-900/10";
-      case "Scheduled": return "text-indigo-500 border-indigo-500/20 bg-indigo-50 dark:bg-indigo-900/10";
-      case "Completed": return "text-emerald-500 border-emerald-500/20 bg-emerald-50 dark:bg-emerald-900/10";
-      case "Cancelled": return "text-rose-500 border-rose-500/20 bg-rose-50 dark:bg-rose-900/10";
-      default: return "text-slate-500 border-slate-200 bg-slate-50";
+      case "Pending": return "text-amber-600 bg-amber-50 border-amber-200";
+      case "Scheduled": return "text-indigo-600 bg-indigo-50 border-indigo-200";
+      case "Completed": return "text-emerald-600 bg-emerald-50 border-emerald-200";
+      case "Cancelled": return "text-rose-600 bg-rose-50 border-rose-200";
+      default: return "text-slate-500 bg-slate-50 border-slate-200";
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 h-full flex flex-col">
-      {/* 1. Header & Controls */}
+      {/* 1. Header */}
       <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Appointments</h1>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Calendar & Requests</p>
         </div>
-        
         <div className="flex p-1.5 rounded-xl neu-inset bg-slate-100 dark:bg-slate-900/50">
-          <button onClick={() => setViewMode("list")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "list" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm transform scale-105" : "text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setViewMode("list")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "list" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
             <LayoutList size={14} /> List
           </button>
-          <button onClick={() => setViewMode("calendar")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "calendar" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm transform scale-105" : "text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setViewMode("calendar")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "calendar" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
             <CalendarIcon size={14} /> Calendar
           </button>
         </div>
       </div>
 
-      {/* 2. Filters (Only for List View) */}
+      {/* 2. Filters */}
       {viewMode === "list" && (
         <div className="overflow-x-auto pb-2 no-scrollbar flex-shrink-0">
           <div className="flex gap-3 min-w-max">
@@ -196,34 +188,73 @@ const Appointments = () => {
               </div>
             ) : (
               filtered.map((app) => (
-                <div key={app.visit_id} onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)} className={`group relative p-5 rounded-[1.25rem] neu-raised border border-white/40 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden ${selected?.visit_id === app.visit_id ? "ring-2 ring-indigo-500/20" : ""}`}>
+                <div 
+                  key={app.visit_id} 
+                  onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)} 
+                  className={`group relative p-4 rounded-[1.25rem] neu-raised border border-white/40 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden ${selected?.visit_id === app.visit_id ? "ring-2 ring-indigo-500/20" : ""}`}
+                >
                   <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${app.action_taken === 'Pending' ? 'bg-amber-400' : app.action_taken === 'Scheduled' ? 'bg-indigo-500' : app.action_taken === 'Completed' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                  <div className="pl-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div className="flex items-start gap-4">
-                       <div className="p-3 rounded-xl neu-inset bg-slate-50 dark:bg-slate-900/50 text-slate-400 group-hover:text-indigo-500 transition-colors"><User size={20} /></div>
-                       <div>
-                          <h3 className="font-bold text-slate-800 dark:text-white text-base">{app.purpose}</h3>
-                          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2"><span className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Student:</span> {app.student?.full_name || "Unknown"}</p>
+                  
+                  <div className="pl-4 flex flex-col md:flex-row items-center gap-4 w-full">
+                    
+                    {/* Left: Info */}
+                    <div className="flex items-center gap-4 flex-1 w-full md:w-auto">
+                       <div className="p-3 rounded-xl neu-inset bg-slate-50 dark:bg-slate-900/50 text-slate-400 group-hover:text-indigo-500 transition-colors">
+                          <User size={20} />
+                       </div>
+                       <div className="min-w-0">
+                          <h3 className="font-bold text-slate-800 dark:text-white text-sm truncate">{app.purpose}</h3>
+                          <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
+                             <span className="font-bold text-slate-400 uppercase tracking-wider text-[9px]">Student:</span> 
+                             {app.student?.full_name || "Unknown"}
+                          </p>
                        </div>
                     </div>
-                    <div className="flex items-center gap-4">
+
+                    {/* Center: Time Context */}
+                    <div className="hidden md:flex items-center justify-center gap-6 px-6 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                       <div className="flex flex-col items-center">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Date</span>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                             <CalendarIcon size={12} className="text-indigo-400" />
+                             {new Date(app.scheduled_time || app.check_in_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </div>
+                       </div>
+                       <div className="w-px h-6 bg-slate-200 dark:bg-slate-700"></div>
+                       <div className="flex flex-col items-center">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Time</span>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                             <Clock size={12} className="text-indigo-400" />
+                             {new Date(app.scheduled_time || app.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}
+                          </div>
+                       </div>
+                    </div>
+
+                    {/* Right: Status */}
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                       {getTimeBadge(app)}
-                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getStatusColor(app.action_taken)}`}>{app.action_taken}</span>
+                      <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getStatusColor(app.action_taken)}`}>
+                        {app.action_taken}
+                      </span>
+                      <ArrowRight size={14} className={`text-slate-300 transition-transform duration-300 ${selected?.visit_id === app.visit_id ? 'rotate-90 text-indigo-500' : ''}`} />
                     </div>
                   </div>
+
                   {/* Expanded Actions */}
                   {selected?.visit_id === app.visit_id && (
-                    <div className="mt-6 pl-4 border-t border-slate-100 dark:border-slate-800 pt-4 animate-in slide-in-from-top-2">
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600 dark:text-slate-300 mb-6">
-                          <div className="flex items-center gap-2"><Clock size={14} className="text-slate-400" /><span className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Logged At:</span>{new Date(app.check_in_time).toLocaleString()}</div>
-                          <div className="flex items-center gap-2"><CalendarIcon size={14} className="text-slate-400" /><span className="font-bold text-slate-400 uppercase tracking-wider text-[10px]">Scheduled:</span>{app.scheduled_time ? new Date(app.scheduled_time).toLocaleString() : "Not Scheduled"}</div>
-                       </div>
-                       <div className="flex gap-3">
+                    <div className="mt-4 pl-4 border-t border-slate-100 dark:border-slate-800 pt-4 animate-in slide-in-from-top-2">
+                       {app.hod_notes && (
+                         <div className="flex items-start gap-2 bg-indigo-50/50 dark:bg-slate-800/50 p-3 rounded-xl mb-4 border border-indigo-100/50">
+                            <MessageSquare size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-xs text-slate-600 dark:text-slate-300"><span className="font-bold text-indigo-500 uppercase text-[9px] mr-2">HOD Note:</span>{app.hod_notes}</p>
+                         </div>
+                       )}
+                       <div className="flex flex-wrap gap-3 justify-end">
                           {["Pending", "Scheduled"].includes(app.action_taken) && (
                             <>
-                              <button onClick={(e) => { e.stopPropagation(); handleSchedule(app); }} className="px-4 py-2 rounded-xl bg-indigo-500 text-white shadow-lg text-[10px] font-black uppercase hover:brightness-110">Reschedule</button>
-                              <button onClick={(e) => { e.stopPropagation(); handleMarkCompleted(app); }} className="px-4 py-2 rounded-xl bg-emerald-500 text-white shadow-lg text-[10px] font-black uppercase hover:brightness-110">Complete</button>
-                              <button onClick={(e) => { e.stopPropagation(); handleAction(app.visit_id, "Cancelled"); }} className="px-4 py-2 rounded-xl bg-rose-500 text-white shadow-lg text-[10px] font-black uppercase hover:brightness-110">Cancel</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleSchedule(app); }} className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm text-[10px] font-black uppercase hover:border-indigo-300 hover:text-indigo-600 transition-all">Reschedule</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleAction(app.visit_id, "Cancelled"); }} className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-rose-500 shadow-sm text-[10px] font-black uppercase hover:bg-rose-50 hover:border-rose-200 transition-all">Cancel</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleMarkCompleted(app); }} className="px-6 py-2 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 text-[10px] font-black uppercase hover:bg-indigo-700 transition-all">Mark Complete</button>
                             </>
                           )}
                        </div>
@@ -234,8 +265,7 @@ const Appointments = () => {
             )}
           </div>
         ) : (
-          // --- FIXED: Controlled Calendar Component ---
-          <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 h-[650px] shadow-inner text-slate-700 dark:text-slate-200">
+          <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 h-[650px] shadow-inner">
              <Calendar
                localizer={localizer}
                events={calendarEvents}
@@ -243,24 +273,14 @@ const Appointments = () => {
                endAccessor="end"
                style={{ height: "100%" }}
                eventPropGetter={eventStyleGetter}
-               // Controlled Props for navigation
-               date={date}
-               onNavigate={setDate} 
-               view={calView}
-               onView={setCalView}
-               onSelectEvent={(event) => {
-                 setSelected(event.resource);
-                 setViewMode("list");
-                 setFilter("All");
-               }}
+               onSelectEvent={(event) => { setSelected(event.resource); setViewMode("list"); setFilter("All"); }}
                views={['month', 'week', 'day']}
-               messages={{ next: "Next", previous: "Back", today: "Today" }}
              />
           </div>
         )}
       </div>
 
-      {/* --- MODALS --- */}
+      {/* --- MODALS (Unchanged) --- */}
       {showScheduleModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50 animate-in fade-in">
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl p-8 w-full max-w-sm neu-raised border border-white/20">
