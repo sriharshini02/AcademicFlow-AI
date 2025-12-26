@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaBell, FaHome, FaCalendarAlt, FaUsers, FaHistory, FaSignOutAlt } from "react-icons/fa";
 import { NavLink, useLocation } from "react-router-dom";
+import axios from "axios";
 import ProfileDropdown from "./ProfileDropdown";
+import HODSettings from "./HODSettings"; // Restored import
 
 const sidebarItems = [
   { name: "Overview", path: "/hod/dashboard", icon: <FaHome /> },
@@ -12,12 +14,68 @@ const sidebarItems = [
 
 const DashboardLayout = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
+  const [newVisitors, setNewVisitors] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  const token = localStorage.getItem("token");
   const location = useLocation();
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.body.classList.toggle("dark", !darkMode);
   };
+
+  const openSettings = () => setShowSettings(true);
+  const closeSettings = () => setShowSettings(false);
+
+  // --- RESTORED: Fetch Queued Visitors for Notifications ---
+  const fetchQueuedVisitors = async () => {
+    if (!token) return;
+    try {
+      const res = await axios.get("http://localhost:5000/api/visit_logs/queued", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNewVisitors(res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch queued visitors:", err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchQueuedVisitors();
+    const interval = setInterval(fetchQueuedVisitors, 10000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // --- RESTORED: Handle Notification Bell Click & Acknowledgement ---
+  const handleBellClick = (e) => {
+    e.stopPropagation();
+    setShowDropdown(!showDropdown);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = async (e) => {
+      if (!e.target.closest(".notification-area") && showDropdown) {
+        setShowDropdown(false);
+        if (newVisitors.length > 0) {
+          // Acknowledge notifications after closing
+          setTimeout(async () => {
+            try {
+              await axios.put("http://localhost:5000/api/visit_logs/acknowledge-new", {}, { 
+                headers: { Authorization: `Bearer ${token}` } 
+              });
+              setNewVisitors([]);
+            } catch (err) {
+              console.error("Failed to acknowledge:", err.message);
+            }
+          }, 1000);
+        }
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [newVisitors, showDropdown, token]);
 
   return (
     <div className="min-h-screen w-full flex p-3 lg:p-4 gap-4 bg-[var(--body-bg)] text-slate-800 dark:text-slate-200">
@@ -33,7 +91,6 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
 
-        {/* --- NAVIGATION LINKS --- */}
         <nav className="flex-1 flex flex-col gap-2">
           {sidebarItems.map((item) => (
             <NavLink
@@ -64,7 +121,7 @@ const DashboardLayout = ({ children }) => {
       {/* --- MAIN CONTENT AREA --- */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
         
-        {/* HEADING BAR: Stands out against body-bg */}
+        {/* HEADING BAR */}
         <header className="flex justify-between items-center px-8 py-4 rounded-xl neu-raised flex-shrink-0
                          dark:bg-slate-800/40 dark:backdrop-blur-xl dark:border-white/10">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
@@ -75,21 +132,71 @@ const DashboardLayout = ({ children }) => {
             <button onClick={toggleDarkMode} className="p-2.5 rounded-xl neu-raised text-slate-600 dark:text-cyan-400">
               {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon className="text-indigo-600" />}
             </button>
-            <button className="p-2.5 rounded-xl neu-raised text-slate-600 dark:text-cyan-400">
-              <FaBell />
-            </button>
+            
+            {/* RESTORED: Notifications Bell with Badge and Dropdown */}
+            <div className="relative">
+              <button onClick={handleBellClick} className="p-2.5 rounded-xl neu-raised text-slate-600 dark:text-cyan-400 relative">
+                <FaBell />
+                {newVisitors.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center animate-bounce">
+                    {newVisitors.length}
+                  </span>
+                )}
+              </button>
+
+              {showDropdown && (
+                <div className="absolute right-0 mt-4 w-72 bg-white dark:bg-slate-800 shadow-2xl rounded-2xl border dark:border-slate-700 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <div className="p-3 border-b dark:border-slate-700 font-bold text-xs text-slate-500 uppercase tracking-widest bg-slate-50 dark:bg-slate-900/50">
+                    Recent Requests
+                  </div>
+                  <ul className="max-h-60 overflow-y-auto no-scrollbar">
+                    {newVisitors.length > 0 ? (
+                      newVisitors.map((visit) => (
+                        <li key={visit.visit_id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 border-b dark:border-slate-700/50 last:border-0 transition-colors">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{visit.visitor_name}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">{visit.purpose}</p>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="p-6 text-center text-[10px] text-slate-400 italic">No new requests</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+
             <div className="h-6 w-px bg-slate-300 dark:bg-white/10 mx-1" />
-            <ProfileDropdown />
+            
+            {/* RESTORED: Profile Dropdown with Settings Link */}
+            <ProfileDropdown onOpenSettings={openSettings} />
           </div>
         </header>
 
-        {/* MAIN BODY: Natural Scrolling, No Secondary Scrollbar */}
         <main className="flex-1 min-h-0 bg-transparent">
           <div className="pb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
             {children}
           </div>
         </main>
       </div>
+
+      {/* --- RESTORED: HOD Settings Modal --- */}
+      {showSettings && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-300 px-4"
+          onClick={closeSettings}
+        >
+          <div 
+            className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-8 relative neu-raised border border-white/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={closeSettings} className="absolute top-6 right-6 text-slate-400 hover:text-rose-500 transition-colors p-2">
+              <FaSignOutAlt className="rotate-180" size={20} />
+            </button>
+            <h2 className="text-2xl font-black mb-8 text-slate-800 dark:text-white tracking-tight">HOD Settings</h2>
+            <HODSettings onClose={closeSettings} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

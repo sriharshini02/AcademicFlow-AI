@@ -13,7 +13,7 @@ import ProctorProfile from './components/ProctorProfile.jsx';
 import ProctorSettings from './components/ProctorSettings.jsx';
 import ProctorDashboard from './components/ProctorDashboard.jsx';
 import ProctorStudents from './components/ProctorStudents.jsx';
-
+import HODProfile from './components/HODProfile.jsx';
 // --- Authentication Context ---
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -139,6 +139,7 @@ const App = () => (
                             </DashboardLayout>
                         }
                     />
+                    <Route path="/hod/profile" element={<DashboardLayout><HODProfile /></DashboardLayout>} />
                 </Route>
 
                 {/* Proctor Protected */}
