@@ -3,32 +3,31 @@
 @tailwind utilities;
 
 :root {
-  /* Changed to a much lighter, whiter soft-gray/pearl base */
-  --neu-bg: #f8fafc;    
+  --neu-bg: #ffffff;    /* Pure White for Sidebar/Header */
+  --body-bg: #f0f2f5;   /* Soft Grey-White for Page Background */
   --neu-light: #ffffff;
-  /* Adjusted shadow color to match the whiter base */
-  --neu-dark: #e2e8f0;  
+  --neu-dark: #d1d9e6;
 }
-
 .dark {
-  --neu-bg: #0f121d;
-  --neu-light: #242b3d;
-  --neu-dark: #05060a;
-  --neon-cyan: rgba(34, 211, 238, 0.4);
+  --neu-bg: #1e2533; 
+  --body-bg: #0f121d; 
+  --neu-light: #2a3447; 
+  --neu-dark: #0a0d14;
 }
 
 body {
-  background-color: var(--neu-bg);
+  background-color: var(--body-bg);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  @apply transition-colors duration-500 antialiased overflow-hidden;
+  @apply transition-colors duration-500 antialiased;
+  /* Removed overflow-hidden to allow natural scrolling */
 }
 
 @layer components {
   .neu-raised {
     background: var(--neu-bg);
     border-radius: 1rem;
-    box-shadow: 6px 6px 12px var(--neu-dark), 
-                -6px -6px 12px var(--neu-light);
+    box-shadow: 8px 8px 16px var(--neu-dark), 
+                -8px -8px 16px var(--neu-light);
   }
 
   .dark .neu-raised {
