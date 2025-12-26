@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Clock, MessageSquare, Loader, Save, Power, BellRing } from 'lucide-react';
+import { Clock, MessageSquare, Loader, Save, Power } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 
 const API_BASE_URL = 'http://localhost:5000/api/hod/availability';
@@ -16,7 +16,6 @@ const HODAvailabilityEditor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  // --- Restored: Helper to format ISO time for <input type="time"> ---
   const formatTimeForInput = (time) => {
     if (!time) return '';
     const date = new Date(time);
@@ -66,74 +65,78 @@ const HODAvailabilityEditor = () => {
     handleUpdate(updated);
   };
 
-  if (loading) return <div className="p-10 text-center text-slate-400 font-bold">Initializing Availability...</div>;
+  if (loading) return <div className="p-10 text-center text-slate-400 font-bold italic">Initialising...</div>;
 
   return (
-    <div className="academic-status-card rounded-[2rem] p-8 flex flex-col lg:flex-row gap-8 items-center border border-white/10">
+    /* Tightened overall padding (p-5) and reduced height behavior */
+    <div className="academic-status-card rounded-[1.5rem] p-5 h-full flex flex-col border border-white/10 shadow-2xl transition-all">
       
-      {/* 1. Availability Status Header */}
-      <div className="flex items-center gap-6 min-w-[280px]">
-        <div className={`p-4 rounded-2xl bg-white/10 border border-white/10 shadow-inner ${status.is_available ? 'text-cyan-400' : 'text-rose-400'}`}>
-          <Power size={32} strokeWidth={3} />
+      {/* 1. COMPACT HEADER */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl bg-white/10 ${status.is_available ? 'text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'text-rose-400'}`}>
+            <Power size={18} strokeWidth={3} />
+          </div>
+          <div>
+            <h3 className="text-[9px] font-black uppercase tracking-widest text-cyan-300 opacity-60">Status</h3>
+            <p className="text-sm font-black text-white leading-none">
+              {status.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}
+            </p>
+          </div>
         </div>
-        <div>
-          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300 opacity-70 mb-1">Availability Status</h3>
-          <p className="text-2xl font-black text-white tracking-tight">
-            Status: {status.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}
-          </p>
-        </div>
+        
+        <button onClick={handleToggle} className="w-10 h-5 rounded-full p-1 bg-white/10 relative shadow-inner shrink-0">
+          <div className={`absolute top-0.5 h-4 w-4 rounded-full shadow-lg transition-all duration-300 ${status.is_available ? 'left-5.5 bg-cyan-400' : 'left-0.5 bg-rose-500'}`} />
+        </button>
       </div>
 
-      {/* 2. Form Inputs with High Contrast Inset */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-300 ml-1 flex items-center gap-2">
-            <MessageSquare size={14} className="text-cyan-400" /> Custom Status Message
+      {/* 2. OPTIMIZED FIELDS ROW */}
+      <div className="space-y-3 flex-1">
+        {/* Message Input: Increased Brightness/Font and minimized height */}
+        <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+          <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5 mb-1">
+            <MessageSquare size={10} className="text-cyan-400" /> Message
           </label>
           <textarea 
             name="status_message" value={status.status_message} 
             onChange={(e) => setStatus({...status, status_message: e.target.value})}
-            className="w-full h-20 p-4 bg-white/5 border border-white/10 rounded-2xl text-sm text-slate-100 outline-none focus:ring-2 focus:ring-cyan-500/20 transition-all resize-none"
-            placeholder="Available for interactions..."
+            className="w-full h-10 bg-transparent border-none outline-none text-sm font-bold text-white placeholder-slate-500 resize-none leading-snug brightness-125 transition-all"
+            placeholder="System status..."
           />
         </div>
 
-        <div className="flex flex-col justify-between">
-          <div className={`space-y-2 transition-all duration-300 ${status.is_available ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-300 ml-1 flex items-center gap-2">
-              <Clock size={14} className="text-indigo-400" /> Est. Return Time
+        {/* Time Field: Reduced Width (w-3/5) and Aligned */}
+        {!status.is_available && (
+          <div className="p-3 rounded-xl bg-white/5 border border-white/10 w-3/5 animate-in slide-in-from-top-1 duration-300">
+            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5 mb-1">
+              <Clock size={10} className="text-indigo-400" /> Return Time
             </label>
             <input 
               type="time" name="estimated_return_time" value={status.estimated_return_time}
               onChange={(e) => setStatus({...status, estimated_return_time: e.target.value})}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full bg-transparent border-none outline-none text-[11px] font-bold text-white cursor-pointer"
             />
           </div>
-
-          {/* Toggle and Sync Message Area */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-3">
-               <button onClick={handleToggle} className="w-14 h-7 rounded-full p-1 bg-white/10 border border-white/5 relative shadow-inner">
-                  <div className={`absolute top-1 h-5 w-5 rounded-full shadow-lg transition-all duration-500 ${status.is_available ? 'left-8 bg-cyan-400' : 'left-1 bg-rose-500'}`} />
-               </button>
-               <span className={`text-[10px] font-black uppercase tracking-widest ${status.is_available ? 'text-cyan-400' : 'text-rose-400'}`}>
-                 {status.is_available ? 'Interaction Active' : 'Do Not Disturb'}
-               </span>
-            </div>
-            {message && <span className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse">{message}</span>}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* 3. Primary Action Button */}
-      <button 
-        onClick={() => handleUpdate(status)}
-        disabled={isSaving}
-        className="btn-vivid px-6 py-10 rounded-3xl flex flex-col items-center justify-center gap-3 min-w-[150px]"
-      >
-        {isSaving ? <Loader className="animate-spin" /> : <Save size={24} />}
-        <span className="text-[10px] text-center">Save Custom Status</span>
-      </button>
+      {/* 3. FOOTER: Reduced Button Width (w-2/3) & Brighter Success Message */}
+      <div className="mt-4 flex flex-col items-center gap-3">
+        <button 
+          onClick={() => handleUpdate(status)}
+          disabled={isSaving}
+          className="btn-vivid w-2/3 py-2 rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-transform shadow-lg"
+        >
+          {isSaving ? <Loader className="animate-spin" size={12} /> : <Save size={12} />}
+          <span className="text-[9px] font-black tracking-widest">SAVE STATUS</span>
+        </button>
+
+        {message && (
+          <p className="text-center text-[12px] font-black text-emerald-400 uppercase tracking-tighter animate-pulse drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]">
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   );
 };

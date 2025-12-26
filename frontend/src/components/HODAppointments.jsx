@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
+import { CalendarCheck, Clock, CheckCircle, User, MessageSquare, Loader } from "lucide-react";
 
 const HODAppointments = () => {
   const [pending, setPending] = useState([]);
   const [scheduled, setScheduled] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // 🔥 New state variables for meeting notes modal
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [hodNotes, setHodNotes] = useState("");
@@ -29,15 +29,12 @@ const HODAppointments = () => {
       setScheduled(scheduledRes.data);
     } catch (err) {
       console.error("Failed to fetch appointments:", err.response?.data || err.message);
-      alert("Failed to fetch appointments. Check console for details.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
+  useEffect(() => { fetchAppointments(); }, []);
 
   const updateStatus = async (id, action_taken, scheduled_time = null, hod_notes = null) => {
     try {
@@ -46,20 +43,17 @@ const HODAppointments = () => {
         { action_taken, scheduled_time, hod_notes },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchAppointments(); // Refresh after update
+      fetchAppointments();
     } catch (err) {
-      console.error("Failed to update status:", err.response?.data || err.message);
       alert(err.response?.data?.message || "Failed to update status");
     }
   };
 
-  // 🔥 New handler — open notes modal
   const handleMarkCompleted = (visit) => {
     setSelectedVisit(visit);
     setShowNotesModal(true);
   };
 
-  // 🔥 New handler — submit notes
   const handleSaveNotes = async () => {
     if (!selectedVisit) return;
     await updateStatus(selectedVisit.visit_id, "Completed", null, hodNotes);
@@ -67,102 +61,112 @@ const HODAppointments = () => {
     setHodNotes("");
   };
 
-  if (loading) return <p>Loading appointments...</p>;
+  if (loading) return (
+    <div className="flex items-center justify-center p-10 text-slate-400 gap-2">
+      <Loader className="animate-spin" /> <span>Syncing Appointments...</span>
+    </div>
+  );
+
+  const AppointmentCard = ({ visit, type }) => (
+    <div className="p-5 rounded-2xl neu-raised dark:bg-white/[0.02] border border-white/10 transition-all hover:scale-[1.01] mb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-start gap-4">
+          <div className={`p-3 rounded-xl neu-inset ${type === 'pending' ? 'text-amber-500' : 'text-indigo-500'}`}>
+            <User size={20} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-slate-800 dark:text-slate-200">
+                {visit.visitor_name} <span className="text-xs font-normal opacity-60">({visit.visitor_role})</span>
+              </p>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 font-bold text-slate-500">
+                {visit.student?.full_name || "General"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1">
+                <Clock size={12} /> {dayjs(type === 'pending' ? visit.check_in_time : visit.scheduled_time).format("DD MMM, HH:mm")}
+              </p>
+              <p className="text-[11px] font-medium text-slate-500 italic flex items-center gap-1">
+                <MessageSquare size={12} /> {visit.purpose}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 w-full md:w-auto">
+          {type === 'pending' && (
+            <button
+              className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 text-white rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-xs font-bold"
+              onClick={() => updateStatus(visit.visit_id, "Scheduled", dayjs().add(30, "minute").toISOString())}
+            >
+              Schedule +30m
+            </button>
+          )}
+          <button
+            className="flex-1 md:flex-none px-4 py-2 bg-indigo-600 text-white rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all text-xs font-bold"
+            onClick={() => handleMarkCompleted(visit)}
+          >
+            Mark Completed
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Pending Appointments */}
-      <div className="bg-white rounded-xl shadow-lg border p-6">
-        <h3 className="text-xl font-semibold mb-3 text-indigo-600">Pending Appointments</h3>
-        {pending.length === 0 ? (
-          <p className="text-gray-500">No pending appointments.</p>
-        ) : (
-          pending.map((visit) => (
-            <div key={visit.visit_id} className="mb-4 border-b pb-2">
-              <p>
-                <strong>{visit.visitor_name}</strong> ({visit.visitor_role}) —{" "}
-                {visit.student?.full_name || "No Student"} —{" "}
-                {dayjs(visit.check_in_time).format("DD MMM YYYY, HH:mm")}
-              </p>
-              <p className="text-gray-600">Purpose: {visit.purpose}</p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                  onClick={() =>
-                    updateStatus(
-                      visit.visit_id,
-                      "Scheduled",
-                      dayjs().add(30, "minute").toISOString()
-                    )
-                  }
-                >
-                  Schedule +30min
-                </button>
-                <button
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  onClick={() => handleMarkCompleted(visit)} // 🔥 show modal instead of instant complete
-                >
-                  Mark Completed
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {/* Pending List */}
+      <div className="p-6 rounded-[1.5rem] neu-raised h-full">
+        <div className="flex items-center gap-3 mb-6 px-2 text-amber-600">
+          <CalendarCheck size={20} />
+          <h3 className="text-lg font-bold uppercase tracking-tight">Pending Appointments</h3>
+        </div>
+        <div className="max-h-[500px] overflow-y-auto no-scrollbar pr-1">
+          {pending.length === 0 ? (
+            <p className="text-center py-10 text-slate-400 text-sm italic">No pending requests.</p>
+          ) : (
+            pending.map((visit) => <AppointmentCard key={visit.visit_id} visit={visit} type="pending" />)
+          )}
+        </div>
       </div>
 
-      {/* Scheduled Appointments */}
-      <div className="bg-white rounded-xl shadow-lg border p-6">
-        <h3 className="text-xl font-semibold mb-3 text-indigo-600">Scheduled Appointments</h3>
-        {scheduled.length === 0 ? (
-          <p className="text-gray-500">No scheduled appointments.</p>
-        ) : (
-          scheduled.map((visit) => (
-            <div key={visit.visit_id} className="mb-4 border-b pb-2">
-              <p>
-                <strong>{visit.visitor_name}</strong> ({visit.visitor_role}) —{" "}
-                {visit.student?.full_name || "No Student"} —{" "}
-                {dayjs(visit.scheduled_time).format("DD MMM YYYY, HH:mm")}
-              </p>
-              <p className="text-gray-600">Purpose: {visit.purpose}</p>
-              <div className="mt-2 flex gap-2">
-                <button
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  onClick={() => handleMarkCompleted(visit)} // 🔥 same modal logic here
-                >
-                  Mark Completed
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+      {/* Scheduled List */}
+      <div className="p-6 rounded-[1.5rem] neu-raised h-full">
+        <div className="flex items-center gap-3 mb-6 px-2 text-indigo-600">
+          <CheckCircle size={20} />
+          <h3 className="text-lg font-bold uppercase tracking-tight">Scheduled Visits</h3>
+        </div>
+        <div className="max-h-[500px] overflow-y-auto no-scrollbar pr-1">
+          {scheduled.length === 0 ? (
+            <p className="text-center py-10 text-slate-400 text-sm italic">No visits scheduled.</p>
+          ) : (
+            scheduled.map((visit) => <AppointmentCard key={visit.visit_id} visit={visit} type="scheduled" />)
+          )}
+        </div>
       </div>
 
-      {/* 🔥 Meeting Notes Modal */}
+      {/* Meeting Notes Modal */}
       {showNotesModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
-            <h2 className="text-xl font-semibold mb-3 text-gray-800">
-              Meeting Notes
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-50 animate-in fade-in duration-300">
+          <div className="neu-raised p-8 w-full max-w-md mx-4 dark:bg-slate-900">
+            <h2 className="text-xl font-bold mb-4 text-slate-800 dark:text-white flex items-center gap-2">
+              <MessageSquare className="text-indigo-500" /> Interaction Notes
             </h2>
-            <textarea
-              className="w-full border border-gray-300 rounded p-2 mb-4 focus:ring focus:ring-indigo-300"
-              rows="4"
-              placeholder="Write meeting summary or notes..."
-              value={hodNotes}
-              onChange={(e) => setHodNotes(e.target.value)}
-            />
+            <div className="p-4 rounded-xl neu-inset mb-6">
+              <textarea
+                className="w-full bg-transparent border-none outline-none text-sm text-slate-700 dark:text-slate-200 resize-none h-32"
+                placeholder="Briefly describe the interaction outcome..."
+                value={hodNotes}
+                onChange={(e) => setHodNotes(e.target.value)}
+              />
+            </div>
             <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowNotesModal(false)}
-                className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-              >
+              <button onClick={() => setShowNotesModal(false)} className="px-5 py-2.5 rounded-xl neu-raised text-slate-500 font-bold text-xs uppercase hover:text-slate-700">
                 Cancel
               </button>
-              <button
-                onClick={handleSaveNotes}
-                className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-              >
-                Save & Complete
+              <button onClick={handleSaveNotes} className="btn-vivid px-6 py-2.5 rounded-xl shadow-xl text-xs font-black">
+                SAVE & ARCHIVE
               </button>
             </div>
           </div>
