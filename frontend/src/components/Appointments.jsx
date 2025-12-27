@@ -50,6 +50,20 @@ const Appointments = () => {
 
   useEffect(() => { fetchAppointments(); }, []);
 
+  // --- NEW: Auto-Scroll Effect ---
+  // This triggers when switching from Calendar -> List with a selected item
+  useEffect(() => {
+    if (viewMode === "list" && selected) {
+      // Small timeout ensures the DOM has finished rendering the list before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(`visit-${selected.visit_id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 100);
+    }
+  }, [viewMode, selected]);
+
   // --- Calendar Data Prep ---
   const calendarEvents = appointments
     .filter(app => app.scheduled_time || app.check_in_time)
@@ -73,10 +87,8 @@ const Appointments = () => {
     return { style: { backgroundColor, borderRadius: '6px', opacity: 0.9, color: 'white', border: '0px', display: 'block', fontSize: '10px', fontWeight: 'bold', padding: '2px 5px' } };
   };
 
-  // --- Helpers & Logic ---
+  // --- Filtering & Sorting ---
   const now = new Date();
-
-  // 1. FILTERING & SORTING logic added here
   const filtered = appointments
     .filter((a) => {
       const scheduledTime = a.scheduled_time ? new Date(a.scheduled_time) : null;
@@ -91,7 +103,6 @@ const Appointments = () => {
       }
     })
     .sort((a, b) => {
-      // Sort Logic: Nearest future date for 'Upcoming', Newest date for everything else
       const dateA = new Date(a.scheduled_time || a.check_in_time);
       const dateB = new Date(b.scheduled_time || b.check_in_time);
       return filter === "Upcoming" ? dateA - dateB : dateB - dateA;
@@ -187,13 +198,13 @@ const Appointments = () => {
             ) : (
               filtered.map((app) => (
                 <div 
+                  id={`visit-${app.visit_id}`} // --- NEW: Unique ID for scrolling ---
                   key={app.visit_id} 
                   onClick={() => setSelected(selected?.visit_id === app.visit_id ? null : app)} 
                   className={`group relative p-4 rounded-[1.25rem] neu-raised border border-white/40 dark:border-white/5 transition-all duration-300 hover:-translate-y-1 cursor-pointer overflow-hidden ${selected?.visit_id === app.visit_id ? "ring-2 ring-indigo-500/20" : ""}`}
                 >
                   <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${app.action_taken === 'Pending' ? 'bg-amber-400' : app.action_taken === 'Scheduled' ? 'bg-indigo-500' : app.action_taken === 'Completed' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                   
-                  {/* --- NEW LIST ROW LAYOUT --- */}
                   <div className="pl-4 flex flex-col md:flex-row items-center gap-4 w-full">
                     
                     {/* Left: Info */}
@@ -210,7 +221,7 @@ const Appointments = () => {
                        </div>
                     </div>
 
-                    {/* Center: Date & Time Display (Visible Row) */}
+                    {/* Center: Time Context */}
                     <div className="hidden md:flex items-center justify-center gap-6 px-6 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50 min-w-[200px]">
                        <div className="flex flex-col items-center">
                           <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Date</span>
@@ -264,7 +275,6 @@ const Appointments = () => {
             )}
           </div>
         ) : (
-          // --- CALENDAR LOGIC UNCHANGED ---
           <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 h-[650px] shadow-inner text-slate-700 dark:text-slate-200">
              <Calendar
                localizer={localizer}
