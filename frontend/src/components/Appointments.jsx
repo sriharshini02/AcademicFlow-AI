@@ -159,7 +159,6 @@ const Appointments = () => {
       {/* 1. Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Appointments</h1>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Calendar & Requests</p>
         </div>
         
