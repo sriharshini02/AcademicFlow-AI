@@ -22,6 +22,10 @@ const Appointments = () => {
   const [viewMode, setViewMode] = useState("list");
   const [selected, setSelected] = useState(null);
 
+  // --- Calendar Control State ---
+  const [date, setDate] = useState(new Date());
+  const [calView, setCalView] = useState("month");
+
   // Modal States
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -46,17 +50,14 @@ const Appointments = () => {
 
   useEffect(() => { fetchAppointments(); }, []);
 
-  // --- Helpers ---
-  const now = new Date();
-  
-  // Calendar Data Prep
+  // --- Calendar Data Prep ---
   const calendarEvents = appointments
     .filter(app => app.scheduled_time || app.check_in_time)
     .map(app => {
       const startDate = new Date(app.scheduled_time || app.check_in_time);
       const endDate = new Date(startDate.getTime() + 30 * 60000); 
       return {
-        title: `${app.visitor_name}`,
+        title: `${app.visitor_name} (${app.purpose})`,
         start: startDate,
         end: endDate,
         resource: app,
@@ -66,13 +67,16 @@ const Appointments = () => {
 
   const eventStyleGetter = (event) => {
     let backgroundColor = '#6366f1'; 
-    if (event.status === 'Pending') backgroundColor = '#f59e0b';
-    if (event.status === 'Completed') backgroundColor = '#10b981';
-    if (event.status === 'Cancelled') backgroundColor = '#ef4444';
-    return { style: { backgroundColor, borderRadius: '6px', opacity: 0.9, color: 'white', border: '0px', fontSize: '10px', fontWeight: 'bold' } };
+    if (event.status === 'Pending') backgroundColor = '#f59e0b'; 
+    if (event.status === 'Completed') backgroundColor = '#10b981'; 
+    if (event.status === 'Cancelled') backgroundColor = '#ef4444'; 
+    return { style: { backgroundColor, borderRadius: '6px', opacity: 0.9, color: 'white', border: '0px', display: 'block', fontSize: '10px', fontWeight: 'bold', padding: '2px 5px' } };
   };
 
-  // --- FILTERING & SORTING LOGIC ---
+  // --- Helpers & Logic ---
+  const now = new Date();
+
+  // 1. FILTERING & SORTING logic added here
   const filtered = appointments
     .filter((a) => {
       const scheduledTime = a.scheduled_time ? new Date(a.scheduled_time) : null;
@@ -87,18 +91,10 @@ const Appointments = () => {
       }
     })
     .sort((a, b) => {
-      // 1. Get the effective date for comparison (Scheduled time takes priority over Check-in time)
+      // Sort Logic: Nearest future date for 'Upcoming', Newest date for everything else
       const dateA = new Date(a.scheduled_time || a.check_in_time);
       const dateB = new Date(b.scheduled_time || b.check_in_time);
-
-      // 2. Sort Logic:
-      // If filtering "Upcoming", we usually want the SOONEST date first (Ascending).
-      // For everything else (History, Pending, All), we want the NEWEST/LATEST date first (Descending).
-      if (filter === "Upcoming") {
-        return dateA - dateB; // Ascending: Nearest future date first
-      } else {
-        return dateB - dateA; // Descending: Newest/Furthest future date first
-      }
+      return filter === "Upcoming" ? dateA - dateB : dateB - dateA;
     });
 
   const handleAction = async (visit_id, action, hod_notes = null, scheduled_time = null) => {
@@ -139,26 +135,28 @@ const Appointments = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Pending": return "text-amber-600 bg-amber-50 border-amber-200";
-      case "Scheduled": return "text-indigo-600 bg-indigo-50 border-indigo-200";
-      case "Completed": return "text-emerald-600 bg-emerald-50 border-emerald-200";
-      case "Cancelled": return "text-rose-600 bg-rose-50 border-rose-200";
+      case "Pending": return "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400";
+      case "Scheduled": return "text-indigo-600 bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-400";
+      case "Completed": return "text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400";
+      case "Cancelled": return "text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400";
       default: return "text-slate-500 bg-slate-50 border-slate-200";
     }
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 h-full flex flex-col">
-      {/* 1. Header */}
+      {/* 1. Header & Controls */}
       <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 flex-shrink-0">
         <div>
+          <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Appointments</h1>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Calendar & Requests</p>
         </div>
+        
         <div className="flex p-1.5 rounded-xl neu-inset bg-slate-100 dark:bg-slate-900/50">
-          <button onClick={() => setViewMode("list")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "list" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setViewMode("list")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "list" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm transform scale-105" : "text-slate-400 hover:text-slate-600"}`}>
             <LayoutList size={14} /> List
           </button>
-          <button onClick={() => setViewMode("calendar")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "calendar" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+          <button onClick={() => setViewMode("calendar")} className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 ${viewMode === "calendar" ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm transform scale-105" : "text-slate-400 hover:text-slate-600"}`}>
             <CalendarIcon size={14} /> Calendar
           </button>
         </div>
@@ -184,7 +182,7 @@ const Appointments = () => {
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 neu-inset rounded-3xl">
                 <Filter size={48} className="opacity-20 mb-4" />
-                <p className="text-sm font-bold uppercase tracking-widest opacity-60">No appointments found</p>
+                <p className="text-sm font-bold uppercase tracking-widest opacity-60">No {filter} appointments found</p>
               </div>
             ) : (
               filtered.map((app) => (
@@ -195,6 +193,7 @@ const Appointments = () => {
                 >
                   <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${app.action_taken === 'Pending' ? 'bg-amber-400' : app.action_taken === 'Scheduled' ? 'bg-indigo-500' : app.action_taken === 'Completed' ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                   
+                  {/* --- NEW LIST ROW LAYOUT --- */}
                   <div className="pl-4 flex flex-col md:flex-row items-center gap-4 w-full">
                     
                     {/* Left: Info */}
@@ -211,8 +210,8 @@ const Appointments = () => {
                        </div>
                     </div>
 
-                    {/* Center: Time Context */}
-                    <div className="hidden md:flex items-center justify-center gap-6 px-6 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50">
+                    {/* Center: Date & Time Display (Visible Row) */}
+                    <div className="hidden md:flex items-center justify-center gap-6 px-6 py-2 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800/50 min-w-[200px]">
                        <div className="flex flex-col items-center">
                           <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Date</span>
                           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
@@ -252,8 +251,8 @@ const Appointments = () => {
                        <div className="flex flex-wrap gap-3 justify-end">
                           {["Pending", "Scheduled"].includes(app.action_taken) && (
                             <>
-                              <button onClick={(e) => { e.stopPropagation(); handleSchedule(app); }} className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm text-[10px] font-black uppercase hover:border-indigo-300 hover:text-indigo-600 transition-all">Reschedule</button>
-                              <button onClick={(e) => { e.stopPropagation(); handleAction(app.visit_id, "Cancelled"); }} className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-rose-500 shadow-sm text-[10px] font-black uppercase hover:bg-rose-50 hover:border-rose-200 transition-all">Cancel</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleSchedule(app); }} className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm text-[10px] font-black uppercase hover:border-indigo-300 hover:text-indigo-600 transition-all dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">Reschedule</button>
+                              <button onClick={(e) => { e.stopPropagation(); handleAction(app.visit_id, "Cancelled"); }} className="px-5 py-2 rounded-xl bg-white border border-slate-200 text-rose-500 shadow-sm text-[10px] font-black uppercase hover:bg-rose-50 hover:border-rose-200 transition-all dark:bg-slate-800 dark:border-slate-700">Cancel</button>
                               <button onClick={(e) => { e.stopPropagation(); handleMarkCompleted(app); }} className="px-6 py-2 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-200 text-[10px] font-black uppercase hover:bg-indigo-700 transition-all">Mark Complete</button>
                             </>
                           )}
@@ -265,7 +264,8 @@ const Appointments = () => {
             )}
           </div>
         ) : (
-          <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 h-[650px] shadow-inner">
+          // --- CALENDAR LOGIC UNCHANGED ---
+          <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 h-[650px] shadow-inner text-slate-700 dark:text-slate-200">
              <Calendar
                localizer={localizer}
                events={calendarEvents}
@@ -273,8 +273,17 @@ const Appointments = () => {
                endAccessor="end"
                style={{ height: "100%" }}
                eventPropGetter={eventStyleGetter}
-               onSelectEvent={(event) => { setSelected(event.resource); setViewMode("list"); setFilter("All"); }}
+               date={date}
+               onNavigate={setDate} 
+               view={calView}
+               onView={setCalView}
+               onSelectEvent={(event) => {
+                 setSelected(event.resource);
+                 setViewMode("list");
+                 setFilter("All");
+               }}
                views={['month', 'week', 'day']}
+               messages={{ next: "Next", previous: "Back", today: "Today" }}
              />
           </div>
         )}

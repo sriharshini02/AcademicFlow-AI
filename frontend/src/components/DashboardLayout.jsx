@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaBell, FaHome, FaCalendarAlt, FaUsers, FaHistory, FaSignOutAlt } from "react-icons/fa";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
 import axios from "axios";
 import ProfileDropdown from "./ProfileDropdown";
-import HODSettings from "./HODSettings"; // Restored import
+import HODSettings from "./HODSettings"; 
+import { useAuth } from "../App"; 
 
 const sidebarItems = [
   { name: "Overview", path: "/hod/dashboard", icon: <FaHome /> },
@@ -18,8 +19,9 @@ const DashboardLayout = ({ children }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
-  const token = localStorage.getItem("token");
+  const { token, logout } = useAuth(); 
   const location = useLocation();
+  const navigate = useNavigate(); // Hook for navigation
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -29,7 +31,12 @@ const DashboardLayout = ({ children }) => {
   const openSettings = () => setShowSettings(true);
   const closeSettings = () => setShowSettings(false);
 
-  // --- RESTORED: Fetch Queued Visitors for Notifications ---
+  // --- NEW: Handle Logout Function ---
+  const handleLogout = () => {
+    logout(); // Clear the context/localStorage
+    navigate("/", { replace: true }); // Force redirect to login page
+  };
+
   const fetchQueuedVisitors = async () => {
     if (!token) return;
     try {
@@ -48,7 +55,6 @@ const DashboardLayout = ({ children }) => {
     return () => clearInterval(interval);
   }, [token]);
 
-  // --- RESTORED: Handle Notification Bell Click & Acknowledgement ---
   const handleBellClick = (e) => {
     e.stopPropagation();
     setShowDropdown(!showDropdown);
@@ -59,7 +65,6 @@ const DashboardLayout = ({ children }) => {
       if (!e.target.closest(".notification-area") && showDropdown) {
         setShowDropdown(false);
         if (newVisitors.length > 0) {
-          // Acknowledge notifications after closing
           setTimeout(async () => {
             try {
               await axios.put("http://localhost:5000/api/visit_logs/acknowledge-new", {}, { 
@@ -78,20 +83,20 @@ const DashboardLayout = ({ children }) => {
   }, [newVisitors, showDropdown, token]);
 
   return (
-    <div className="min-h-screen w-full flex p-3 lg:p-4 gap-4 bg-[var(--body-bg)] text-slate-800 dark:text-slate-200">
+    <div className="h-screen w-full flex p-3 lg:p-4 gap-4 bg-[var(--body-bg)] text-slate-800 dark:text-slate-200 overflow-hidden transition-all duration-500">
       
-      {/* --- FIXED SIDEBAR: Restored Nav Elements --- */}
-      <aside className="hidden lg:flex w-60 flex-col rounded-2xl neu-raised p-6 flex-shrink-0 h-[calc(100vh-2rem)] sticky top-4 
-                        dark:bg-slate-800/40 dark:backdrop-blur-xl dark:border-white/10">
+      {/* --- SIDEBAR --- */}
+      <aside className="hidden lg:flex w-60 flex-col rounded-2xl neu-raised p-6 flex-shrink-0 h-full sticky top-0 
+                        dark:bg-slate-800/40 dark:backdrop-blur-xl dark:border-white/10 shadow-xl">
         <div className="mb-10 flex items-center gap-3 px-2">
           <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white shadow-lg font-bold">A</div>
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none">ANVIS</h1>
-            <p className="text-[10px] text-slate-500 dark:text-cyan-400/80 font-medium mt-1">Academic Portal</p>
+            <p className="text-[10px] text-slate-500 dark:text-cyan-400/80 font-medium mt-1 uppercase tracking-widest">Portal</p>
           </div>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-2">
+        <nav className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar">
           {sidebarItems.map((item) => (
             <NavLink
               key={item.name}
@@ -111,7 +116,11 @@ const DashboardLayout = ({ children }) => {
         </nav>
 
         <div className="pt-4 border-t border-slate-200 dark:border-white/10">
-           <button className="flex items-center gap-3 px-4 py-3 w-full text-rose-500 font-semibold hover:bg-rose-500/10 rounded-xl transition-all text-sm">
+           {/* UPDATED: Logout button now calls handleLogout */}
+           <button 
+             onClick={handleLogout}
+             className="flex items-center gap-3 px-4 py-3 w-full text-rose-500 font-semibold hover:bg-rose-500/10 rounded-xl transition-all text-sm"
+           >
              <FaSignOutAlt />
              <span>Logout</span>
            </button>
@@ -119,21 +128,20 @@ const DashboardLayout = ({ children }) => {
       </aside>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <div className="flex-1 flex flex-col gap-4 min-w-0">
+      <div className="flex-1 flex flex-col gap-4 min-w-0 h-full overflow-hidden">
         
         {/* HEADING BAR */}
         <header className="flex justify-between items-center px-8 py-4 rounded-xl neu-raised flex-shrink-0
-                         dark:bg-slate-800/40 dark:backdrop-blur-xl dark:border-white/10">
+                         dark:bg-slate-800/40 dark:backdrop-blur-xl dark:border-white/10 shadow-lg">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
              {sidebarItems.find(i => i.path === location.pathname)?.name || "Dashboard"}
           </h2>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 relative notification-area">
             <button onClick={toggleDarkMode} className="p-2.5 rounded-xl neu-raised text-slate-600 dark:text-cyan-400">
               {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon className="text-indigo-600" />}
             </button>
             
-            {/* RESTORED: Notifications Bell with Badge and Dropdown */}
             <div className="relative">
               <button onClick={handleBellClick} className="p-2.5 rounded-xl neu-raised text-slate-600 dark:text-cyan-400 relative">
                 <FaBell />
@@ -166,20 +174,18 @@ const DashboardLayout = ({ children }) => {
             </div>
 
             <div className="h-6 w-px bg-slate-300 dark:bg-white/10 mx-1" />
-            
-            {/* RESTORED: Profile Dropdown with Settings Link */}
             <ProfileDropdown onOpenSettings={openSettings} />
           </div>
         </header>
 
-        <main className="flex-1 min-h-0 bg-transparent">
+        <main className="flex-1 overflow-y-auto no-scrollbar">
           <div className="pb-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
             {children}
           </div>
         </main>
       </div>
 
-      {/* --- RESTORED: HOD Settings Modal --- */}
+      {/* --- SETTINGS MODAL --- */}
       {showSettings && (
         <div 
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-300 px-4"
