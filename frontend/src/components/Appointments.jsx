@@ -184,7 +184,7 @@ const Appointments = () => {
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 neu-inset rounded-3xl">
                 <Filter size={48} className="opacity-20 mb-4" />
-                <p className="text-sm font-bold uppercase tracking-widest opacity-60">No {filter} appointments found</p>
+                <p className="text-sm font-bold uppercase tracking-widest opacity-60">No appointments found</p>
               </div>
             ) : (
               filtered.map((app) => (
