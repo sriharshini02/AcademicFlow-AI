@@ -1,6 +1,6 @@
 // controllers/proctorController.js
 import db from "../models/index.js";
-
+import bcrypt from "bcryptjs";
 const { User, StudentCore } = db;
 
 // ✅ GET Proctor Profile
@@ -25,25 +25,38 @@ export const getProctorProfile = async (req, res) => {
 // ✅ UPDATE Proctor Profile/Settings
 export const updateProctorProfile = async (req, res) => {
   try {
-    const proctorId = req.userId;
+    const proctorId = req.userId; // Ensure this comes from your auth middleware
     const { name, email, password } = req.body;
 
     const proctor = await User.findByPk(proctorId, {
-  include: [{ model: StudentCore, as: "student_cores" }]
-});
+      include: [{ model: StudentCore, as: "student_cores" }]
+    });
 
     if (!proctor)
       return res.status(404).json({ message: "Proctor not found" });
 
+    // Update basic fields
     if (name) proctor.name = name;
     if (email) proctor.email = email;
-    if (password) {
-      // Add your bcrypt hashing logic here if needed
-      proctor.password_hash = password;
+
+    // ✅ FIX: Hash the password before saving
+    if (password && password.trim() !== "") {
+      const salt = await bcrypt.genSalt(10);
+      proctor.password_hash = await bcrypt.hash(password, salt);
     }
 
     await proctor.save();
-    res.json({ message: "Profile updated successfully", proctor });
+    
+    // Return success (excluding sensitive data)
+    res.json({ 
+      message: "Profile updated successfully", 
+      proctor: {
+        id: proctor.user_id,
+        name: proctor.name,
+        email: proctor.email
+      }
+    });
+
   } catch (err) {
     console.error("Error updating profile:", err);
     res.status(500).json({ message: "Error updating profile" });
