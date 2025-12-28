@@ -197,7 +197,7 @@ export const getHODStudentDetails = async (req, res) => {
     const student = await StudentCore.findOne({
       where: { student_id: id },
       include: [
-        { model: StudentPersonalInfo, required: false },
+        { model: StudentPersonalInfo, required: false }, // Fetches date_of_birth
         { model: StudentAcademicScore, required: false },
         { model: StudentAttendance, required: false },
         { model: StudentExtracurricular, required: false },
@@ -226,8 +226,11 @@ export const getHODStudentDetails = async (req, res) => {
       department: student.department,
       year_group: student.year_group,
       section: student.section || "N/A",
+      
+      // ✅ FIX: Map 'date_of_birth' from DB to 'dob' for frontend
+      dob: personal.date_of_birth ? new Date(personal.date_of_birth).toLocaleDateString() : "N/A",
+      
       gender: personal.gender || "N/A",
-      dob: personal.dob || "N/A",
       phone: personal.phone_number || "N/A",
       email: personal.college_email || "N/A",
       personal_email: personal.personal_email || "N/A",
@@ -235,15 +238,18 @@ export const getHODStudentDetails = async (req, res) => {
       mother_name: personal.mother_name || "N/A",
       father_phone: personal.father_phone || "N/A",
       mother_phone: personal.mother_phone || "N/A",
+      
       gpa,
       total_marks: totalMarks,
       attendance_percentage: latestAttendance?.attendance_percentage || "N/A",
       proctor: student.proctor?.name || "N/A",
+      
       academic_scores: scores.map((s) => ({
         semester: s.semester,
         subject_name: s.subject_name,
         total_marks: s.total_marks
       })),
+      
       extracurriculars: (student.student_extracurriculars || []).map((e) => ({
         activity_name: e.activity_name,
         description: e.description,

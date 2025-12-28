@@ -37,7 +37,12 @@ const HODStudents = () => {
   // 🔍 Apply filters and search
   useEffect(() => {
     let result = [...students];
-    if (yearFilter) result = result.filter((s) => s.year === yearFilter);
+    
+    // ✅ Updated Filter Logic: simple string matching for "1", "2", etc.
+    if (yearFilter) {
+      result = result.filter((s) => s.year && s.year.toString() === yearFilter);
+    }
+
     if (sectionFilter)
       result = result.filter(
         (s) => s.section && s.section.toLowerCase() === sectionFilter.toLowerCase()
@@ -133,6 +138,7 @@ const HODStudents = () => {
 
         {/* Filters */}
         <div className="flex gap-3 w-full md:w-auto">
+           {/* ✅ FIXED YEAR FILTER */}
            <div className="relative">
              <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
              <select
@@ -141,10 +147,10 @@ const HODStudents = () => {
                onChange={(e) => setYearFilter(e.target.value)}
              >
                <option value="">All Years</option>
-               <option value="2025">2025 (Year 4)</option>
-               <option value="2026">2026 (Year 3)</option>
-               <option value="2027">2027 (Year 2)</option>
-               <option value="2028">2028 (Year 1)</option>
+               <option value="1">1st Year</option>
+               <option value="2">2nd Year</option>
+               <option value="3">3rd Year</option>
+               <option value="4">4th Year</option>
              </select>
            </div>
 
@@ -159,6 +165,7 @@ const HODStudents = () => {
                <option value="A">Section A</option>
                <option value="B">Section B</option>
                <option value="C">Section C</option>
+               <option value="D">Section D</option>
              </select>
            </div>
         </div>
@@ -195,16 +202,16 @@ const HODStudents = () => {
                     <td className="p-5 font-bold text-slate-800 dark:text-white">{stu.name}</td>
                     <td className="p-5">{stu.year}</td>
                     <td className="p-5">
-                       <span className="px-2 py-1 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500">{stu.section}</span>
+                        <span className="px-2 py-1 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500">{stu.section}</span>
                     </td>
                     <td className="p-5 text-center">
-                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                           parseFloat(stu.attendance) >= 75 
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
                             : "bg-rose-100 text-rose-700 border border-rose-200"
-                       }`}>
+                        }`}>
                           {stu.attendance}%
-                       </span>
+                        </span>
                     </td>
                     <td className="p-5 text-center font-bold text-slate-700 dark:text-slate-200">{stu.gpa}</td>
                     <td className="p-5 text-xs text-slate-500">{stu.proctor}</td>
@@ -346,10 +353,10 @@ const HODStudents = () => {
 
                   {/* Proctor Info */}
                   <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center justify-between border border-indigo-100 dark:border-indigo-800">
-                     <span className="text-xs font-black uppercase tracking-widest text-indigo-400">Assigned Proctor</span>
-                     <span className="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
-                        <User size={14} /> {details.proctor}
-                     </span>
+                      <span className="text-xs font-black uppercase tracking-widest text-indigo-400">Assigned Proctor</span>
+                      <span className="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                         <User size={14} /> {details.proctor}
+                      </span>
                   </div>
 
                 </>

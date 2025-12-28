@@ -40,7 +40,11 @@ db.StudentCore = sequelize.define('student_core', {
   year_group: { type: Sequelize.STRING(10) },
   department: { type: Sequelize.STRING(50) },
   assigned_proctor_id: { type: Sequelize.INTEGER },
-  admission_type: { type: Sequelize.ENUM('NORMAL', 'LATERAL') }
+  admission_type: { type: Sequelize.ENUM('NORMAL', 'LATERAL') },
+  section: { type: Sequelize.STRING(5) },
+  // ✅ NEW FIELDS
+  joining_year: { type: Sequelize.STRING(10) },
+  completion_year: { type: Sequelize.STRING(10) }
 }, { tableName: 'students_core' });
 
 // HOD Availability Model
@@ -87,17 +91,21 @@ db.ToDoTask = sequelize.define('todo_task', {
 // 2️⃣ NEW MODELS FOR STUDENTS PAGE
 // ------------------------------------------------------
 
-// Personal Info
+// Personal Info Model
 db.StudentPersonalInfo = sequelize.define('student_personal_info', {
   id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   student_id: { type: Sequelize.INTEGER, allowNull: false },
-  phone_number: { type: Sequelize.STRING(15) },
+  phone_number: { type: Sequelize.STRING(50) },
   college_email: { type: Sequelize.STRING(100) },
   personal_email: { type: Sequelize.STRING(100) },
   father_name: { type: Sequelize.STRING(100) },
-  father_phone: { type: Sequelize.STRING(15) },
+  father_phone: { type: Sequelize.STRING(50) },
   mother_name: { type: Sequelize.STRING(100) },
-  mother_phone: { type: Sequelize.STRING(15) }
+  mother_phone: { type: Sequelize.STRING(50) },
+  address: { type: Sequelize.TEXT },
+  gender: { type: Sequelize.STRING(10) },
+  // ✅ NEW FIELD
+  date_of_birth: { type: Sequelize.DATEONLY } 
 }, { tableName: 'students_personal_info' });
 
 // Academic Scores
@@ -199,7 +207,6 @@ db.StudentAttendance.belongsTo(db.StudentCore, { foreignKey: 'student_id' });
 
 db.StudentCore.hasMany(db.StudentExtracurricular, { foreignKey: 'student_id' });
 db.StudentExtracurricular.belongsTo(db.StudentCore, { foreignKey: 'student_id' });
-
 
 // Relationship: One HOD (User) has one HODInfo
 db.User.hasOne(db.HODInfo, { foreignKey: 'hod_id' });
