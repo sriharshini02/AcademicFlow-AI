@@ -1,98 +1,93 @@
 import React, { useState, useEffect, useRef } from "react";
-import { FaUserCircle, FaCog, FaSignOutAlt, FaUser } from "react-icons/fa";
-import axios from "axios";
+import { UserCircle, Settings, LogOut, User } from "lucide-react"; // Updated icons
+import { useAuth } from "../App"; // Use context for user data & logout
 import { useNavigate } from "react-router-dom";
 
-const ProfileDropdown = ({ onOpenSettings }) => {
-  const [open, setOpen] = useState(false);
-  const [hodData, setHodData] = useState({});
-  const token = localStorage.getItem("token");
+const ProfileDropdown = ({ onOpenSettings, onViewProfile }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { user, logout } = useAuth(); // Get generic user info (works for HOD & Proctor)
   const navigate = useNavigate();
 
-  // Fetch basic HOD profile
-  useEffect(() => {
-    const fetchHod = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/hod/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setHodData(res.data);
-      } catch (err) {
-        console.error("Failed to fetch HOD profile:", err.message);
-      }
-    };
-    fetchHod();
-  }, [token]);
+  const toggleDropdown = () => setIsOpen(!isOpen);
 
-  // Close dropdown on outside click
+  // Close dropdown if clicked outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpen(false);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/logout");
+  const handleLogoutClick = () => {
+    logout(); // Clears token & context
+    navigate("/", { replace: true });
   };
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Avatar Icon */}
+      {/* Trigger Button */}
       <button
-        onClick={() => setOpen(!open)}
-        className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+        onClick={toggleDropdown}
+        className="p-2.5 rounded-xl neu-raised text-slate-600 dark:text-cyan-400 hover:text-indigo-500 transition-colors focus:outline-none"
       >
-        <FaUserCircle size={22} className="text-gray-700 dark:text-gray-200" />
+        <UserCircle size={24} />
       </button>
 
       {/* Dropdown Menu */}
-      {open && (
-        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
-          {/* Header */}
-          <div className="p-3 border-b dark:border-gray-700">
-            <p className="font-semibold text-gray-800 dark:text-gray-100">
-              {hodData.name || "HOD User"}
+      {isOpen && (
+        <div className="absolute right-0 mt-4 w-60 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+          
+          {/* Header: Displays Name & Role from Auth Context */}
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
+            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
+              {user?.name || "Faculty Member"}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {hodData.email || "hod@college.edu"}
+            <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-0.5">
+              {user?.role || "Authorized User"}
             </p>
           </div>
 
-          {/* Menu Items */}
-          <ul className="p-2 text-sm text-gray-700 dark:text-gray-200">
-            <li
+          {/* Menu Actions */}
+          <div className="p-2">
+            {/* View Profile Button */}
+            <button
               onClick={() => {
-                onOpenSettings();
-                setOpen(false);
+                setIsOpen(false);
+                if (onViewProfile) onViewProfile(); // Calls the Modal function passed from parent
               }}
-              className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-500 transition-colors text-left"
             >
-              <FaCog /> Settings
-            </li>
+              <User size={16} />
+              View Profile
+            </button>
 
-            <li
+            {/* Settings Button */}
+            <button
               onClick={() => {
-                navigate("/hod/profile");
-                setOpen(false);
+                setIsOpen(false);
+                if (onOpenSettings) onOpenSettings(); // Calls the Settings navigation
               }}
-              className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-indigo-500 transition-colors text-left"
             >
-              <FaUser /> View Profile
-            </li>
+              <Settings size={16} />
+              Settings
+            </button>
+          </div>
 
-            <li
-              onClick={handleLogout}
-              className="flex items-center gap-2 p-2 rounded hover:bg-red-100 dark:hover:bg-red-800 cursor-pointer text-red-600 dark:text-red-400"
+          {/* Logout Button */}
+          <div className="p-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={handleLogoutClick}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left"
             >
-              <FaSignOutAlt /> Logout
-            </li>
-          </ul>
+              <LogOut size={16} />
+              Sign Out
+            </button>
+          </div>
         </div>
       )}
     </div>

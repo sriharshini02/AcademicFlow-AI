@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { FaSun, FaMoon, FaBell, FaHome, FaCalendarAlt, FaUsers, FaHistory, FaSignOutAlt } from "react-icons/fa";
-import { NavLink, useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { X } from "lucide-react"; // Import X icon
 import ProfileDropdown from "./ProfileDropdown";
 import HODSettings from "./HODSettings"; 
+import HODProfile from "./HODProfile"; // ✅ Import the new profile component
 import { useAuth } from "../App"; 
 
 const sidebarItems = [
@@ -17,11 +19,14 @@ const DashboardLayout = ({ children }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [newVisitors, setNewVisitors] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
+  
+  // Modal States
   const [showSettings, setShowSettings] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false); // ✅ New State
   
   const { token, logout } = useAuth(); 
   const location = useLocation();
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -31,12 +36,17 @@ const DashboardLayout = ({ children }) => {
   const openSettings = () => setShowSettings(true);
   const closeSettings = () => setShowSettings(false);
 
-  // --- NEW: Handle Logout Function ---
-  const handleLogout = () => {
-    logout(); // Clear the context/localStorage
-    navigate("/", { replace: true }); // Force redirect to login page
+  // ✅ Handler for View Profile
+  const handleViewProfile = () => {
+    setShowProfileModal(true);
   };
 
+  const handleLogout = () => {
+    logout(); 
+    navigate("/", { replace: true });
+  };
+
+  // ... (Keep existing fetchQueuedVisitors and notification logic exactly as is) ...
   const fetchQueuedVisitors = async () => {
     if (!token) return;
     try {
@@ -116,7 +126,6 @@ const DashboardLayout = ({ children }) => {
         </nav>
 
         <div className="pt-4 border-t border-slate-200 dark:border-white/10">
-           {/* UPDATED: Logout button now calls handleLogout */}
            <button 
              onClick={handleLogout}
              className="flex items-center gap-3 px-4 py-3 w-full text-rose-500 font-semibold hover:bg-rose-500/10 rounded-xl transition-all text-sm"
@@ -130,7 +139,6 @@ const DashboardLayout = ({ children }) => {
       {/* --- MAIN CONTENT AREA --- */}
       <div className="flex-1 flex flex-col gap-4 min-w-0 h-full overflow-hidden">
         
-        {/* HEADING BAR */}
         <header className="flex justify-between items-center px-8 py-4 rounded-xl neu-raised flex-shrink-0
                          dark:bg-slate-800/40 dark:backdrop-blur-xl dark:border-white/10 shadow-lg">
           <h2 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
@@ -174,7 +182,12 @@ const DashboardLayout = ({ children }) => {
             </div>
 
             <div className="h-6 w-px bg-slate-300 dark:bg-white/10 mx-1" />
-            <ProfileDropdown onOpenSettings={openSettings} />
+            
+            {/* ✅ UPDATED: Pass handlers to dropdown */}
+            <ProfileDropdown 
+              onOpenSettings={openSettings} 
+              onViewProfile={handleViewProfile} 
+            />
           </div>
         </header>
 
@@ -203,6 +216,30 @@ const DashboardLayout = ({ children }) => {
           </div>
         </div>
       )}
+
+      {/* --- ✅ NEW PROFILE MODAL --- */}
+      {showProfileModal && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-300 px-4"
+          onClick={() => setShowProfileModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-md p-8 relative neu-raised border border-white/20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              onClick={() => setShowProfileModal(false)} 
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 transition-all"
+            >
+              <X size={20} />
+            </button>
+            
+            {/* Render the HOD Profile Component */}
+            <HODProfile />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

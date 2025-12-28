@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { User, Mail, Shield, Building, Phone, DoorOpen, Loader } from 'lucide-react';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useAuth } from "../App";
+import { User, Mail, Building, Phone, Briefcase, Loader } from "lucide-react";
 
 const HODProfile = () => {
+  const { token } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const token = localStorage.getItem("token");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -13,10 +14,9 @@ const HODProfile = () => {
         const res = await axios.get("http://localhost:5000/api/hod/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        // Accessing data according to your controller structure
         setProfile(res.data);
       } catch (err) {
-        console.error("Profile fetch error:", err);
+        console.error("Error fetching HOD profile:", err);
       } finally {
         setLoading(false);
       }
@@ -25,77 +25,67 @@ const HODProfile = () => {
   }, [token]);
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center p-20 text-slate-400 gap-4">
-      <Loader className="animate-spin" size={32} />
-      <span className="font-bold tracking-widest uppercase text-xs">Syncing HOD Identity...</span>
+    <div className="flex flex-col items-center justify-center p-10 text-slate-400">
+      <Loader className="animate-spin mb-2" />
+      <span className="text-xs font-bold uppercase tracking-widest">Loading Profile...</span>
     </div>
   );
 
-  // Safely extract nested data from hod_info alias in your controller
-  const info = profile?.hod_info || {};
+  if (!profile) return <div className="text-center text-rose-500 font-bold p-6">Profile not found.</div>;
 
   return (
-    <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="p-8 rounded-[2rem] neu-raised border border-white/20 dark:border-slate-800/50 bg-white dark:bg-slate-900/50">
-        
-        {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-center gap-8 mb-12 border-b border-slate-100 dark:border-slate-800 pb-12">
-          <div className="p-1 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-600 shadow-xl">
-            <div className="h-32 w-32 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-indigo-500">
-              <User size={64} strokeWidth={1.5} />
-            </div>
-          </div>
-          <div className="text-center md:text-left">
-            <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight mb-2 uppercase">
-              {profile?.name}
-            </h2>
-            <div className="flex flex-wrap justify-center md:justify-start gap-3">
-              <span className="px-4 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800">
-                {profile?.role}
-              </span>
-              <span className="px-4 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-800">
-                Verified Account
-              </span>
-            </div>
-          </div>
+    <div className="space-y-8">
+      {/* Avatar Section */}
+      <div className="flex flex-col items-center">
+        <div className="w-24 h-24 rounded-full neu-raised bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-4xl font-bold text-indigo-500 mb-4 border-4 border-[var(--body-bg)]">
+          {profile.name ? profile.name.charAt(0).toUpperCase() : "H"}
         </div>
+        <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight text-center">
+          {profile.name}
+        </h2>
+        <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-300 text-[10px] font-black uppercase tracking-widest mt-2 border border-indigo-200 dark:border-indigo-800">
+          Head of Department
+        </span>
+      </div>
 
-        {/* Info Grid - Real data from HODInfo model */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <InfoCard 
-            icon={<Mail className="text-cyan-500" />} 
-            label="Official Email" 
-            value={profile?.email} 
-          />
-          <InfoCard 
-            icon={<Building className="text-indigo-500" />} 
-            label="Department" 
-            value={info.department} 
-          />
-          <InfoCard 
-            icon={<DoorOpen className="text-amber-500" />} 
-            label="Office Location" 
-            value={info.office_room ? ` ${info.office_room}` : "Not Assigned"} 
-          />
-          <InfoCard 
-            icon={<Phone className="text-rose-500" />} 
-            label="Contact Number" 
-            value={info.contact_number} 
-          />
-        </div>
+      {/* Details Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ProfileField 
+          icon={<Mail size={16} />} 
+          label="Email Address" 
+          value={profile.email} 
+          fullWidth
+        />
+        <ProfileField 
+          icon={<Building size={16} />} 
+          label="Department" 
+          value={profile.hod_info?.department || profile.department} 
+        />
+        <ProfileField 
+          icon={<Briefcase size={16} />} 
+          label="Office Room" 
+          value={profile.hod_info?.office_room || "Not Assigned"} 
+        />
+        <ProfileField 
+          icon={<Phone size={16} />} 
+          label="Contact Number" 
+          value={profile.hod_info?.contact_number || "—"} 
+          fullWidth
+        />
       </div>
     </div>
   );
 };
 
-const InfoCard = ({ icon, label, value }) => (
-  <div className="p-6 rounded-2xl neu-inset bg-slate-50/50 dark:bg-slate-900/20 border border-slate-100 dark:border-slate-800/50 flex items-center gap-5">
-    <div className="p-3 rounded-xl neu-raised bg-white dark:bg-slate-800 shadow-sm transition-transform hover:scale-110">
+// Helper Component
+const ProfileField = ({ icon, label, value, fullWidth }) => (
+  <div className={`p-4 rounded-xl neu-inset bg-slate-50/50 dark:bg-slate-900/30 border border-white/50 dark:border-white/5 ${fullWidth ? 'col-span-1 md:col-span-2' : ''}`}>
+    <div className="flex items-center gap-2 mb-1 text-slate-400">
       {icon}
+      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
     </div>
-    <div>
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">{label}</p>
-      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{value || "N/A"}</p>
+    <div className="text-sm font-bold text-slate-700 dark:text-slate-200 pl-6 truncate">
+      {value || "—"}
     </div>
   </div>
 );

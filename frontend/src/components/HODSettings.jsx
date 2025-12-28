@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { FaEdit, FaSave, FaTimes } from "react-icons/fa";
+import { User, Mail, Phone, Briefcase, Building, Edit3, Save, Lock, Loader, ArrowLeft } from "lucide-react";
 
-const HODSettings = ({ onClose }) => {
+const HODSettings = () => {
   const [profile, setProfile] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -53,185 +53,154 @@ const HODSettings = ({ onClose }) => {
     }
   };
 
-  if (loading)
-    return (
-      <div className="flex justify-center items-center py-12 text-gray-500 dark:text-gray-300">
-        Loading profile...
-      </div>
-    );
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center py-10 text-slate-400">
+      <Loader className="animate-spin mb-2" />
+      <span className="text-xs font-bold uppercase tracking-widest">Syncing Data...</span>
+    </div>
+  );
 
   return (
-    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-all duration-300">
-      {/* Header */}
-      <div className="flex justify-between items-center px-6 py-4 border-b dark:border-gray-700">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-          Account Settings
-        </h2>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-red-500 transition"
-        >
-          <FaTimes size={18} />
-        </button>
-      </div>
+    <div className="w-full">
+      {/* NOTE: The parent modal already has a Title and Close (X) button.
+         This component now only renders the Profile Card or the Edit Form.
+      */}
 
-      {/* Profile Info */}
-      <div className="p-6">
-        {!editMode ? (
-          // ---------------- VIEW MODE ----------------
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-indigo-500 flex items-center justify-center text-3xl text-white font-semibold">
-                {profile.name ? profile.name[0] : "H"}
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-                  {profile.name}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400">{profile.email}</p>
-                <p className="text-sm text-indigo-500 font-medium mt-1">
-                  {profile.department} Department
-                </p>
-              </div>
+      {!editMode ? (
+        // ---------------- VIEW MODE ----------------
+        <div className="space-y-8 animate-in fade-in duration-500">
+          
+          {/* Avatar & Hero */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-28 h-28 rounded-full neu-raised bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-5xl font-black text-indigo-500 border-4 border-[var(--body-bg)] shadow-xl mb-4">
+              {profile.name ? profile.name[0].toUpperCase() : "H"}
             </div>
-
-            <div className="grid grid-cols-2 gap-6 text-sm">
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">Contact Number</p>
-                <p className="font-medium text-gray-800 dark:text-gray-100">
-                  {profile.contact_number || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500 dark:text-gray-400">Office Room</p>
-                <p className="font-medium text-gray-800 dark:text-gray-100">
-                  {profile.office_room || "—"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={() => setEditMode(true)}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-              >
-                <FaEdit /> Edit Profile
-              </button>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
+              {profile.name}
+            </h3>
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-1">
+              {profile.email}
+            </p>
+            <div className="flex gap-2 mt-3">
+              <Badge icon={<Building size={10} />} text={`${profile.department || "General"} Dept`} color="indigo" />
+              <Badge icon={<Briefcase size={10} />} text={profile.office_room || "No Office"} color="emerald" />
             </div>
           </div>
-        ) : (
-          // ---------------- EDIT MODE ----------------
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSave();
-            }}
-            className="space-y-6"
+
+          {/* Details Card */}
+          <div className="p-6 rounded-[1.5rem] neu-inset bg-slate-50/50 dark:bg-slate-900/30 border border-white/50 dark:border-white/5">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">Contact Information</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ViewField icon={<Phone size={16} />} label="Phone" value={profile.contact_number} />
+              <ViewField icon={<Mail size={16} />} label="Email" value={profile.email} />
+            </div>
+          </div>
+
+          {/* Edit Trigger */}
+          <button
+            onClick={() => setEditMode(true)}
+            className="w-full py-4 rounded-xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={profile.name}
-                  onChange={handleChange}
-                  className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
+            <Edit3 size={16} /> Edit Profile
+          </button>
+        </div>
+      ) : (
+        // ---------------- EDIT MODE ----------------
+        <form
+          onSubmit={(e) => { e.preventDefault(); handleSave(); }}
+          className="space-y-6 animate-in fade-in slide-in-from-right-8"
+        >
+          {/* Top Bar: Back Button */}
+          <div className="flex items-center gap-2 mb-2">
+             <button 
+               type="button" 
+               onClick={() => setEditMode(false)}
+               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-500 transition-colors"
+             >
+               <ArrowLeft size={18} />
+             </button>
+             <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Editing Profile</span>
+          </div>
 
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={profile.email}
-                  onChange={handleChange}
-                  className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <EditField label="Full Name" name="name" value={profile.name} onChange={handleChange} icon={<User size={16} />} />
+            <EditField label="Email" name="email" value={profile.email} onChange={handleChange} icon={<Mail size={16} />} />
+            <EditField label="Contact No" name="contact_number" value={profile.contact_number} onChange={handleChange} icon={<Phone size={16} />} />
+            <EditField label="Office Room" name="office_room" value={profile.office_room} onChange={handleChange} icon={<Briefcase size={16} />} />
+            
+            {/* Read-Only Department */}
+            <div className="md:col-span-2">
+               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 mb-1 block">Department</label>
+               <div className="w-full px-4 py-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 text-sm font-bold flex items-center gap-3 cursor-not-allowed opacity-60">
+                  <Building size={16} />
+                  {profile.department}
+               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  New Password
-                </label>
-                <input
+            {/* Password Section */}
+            <div className="md:col-span-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+               <EditField 
+                  label="New Password" 
+                  name="password" 
                   type="password"
-                  name="password"
-                  placeholder="••••••••"
-                  value={profile.password}
-                  onChange={handleChange}
-                  className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  Contact Number
-                </label>
-                <input
-                  type="text"
-                  name="contact_number"
-                  value={profile.contact_number}
-                  onChange={handleChange}
-                  className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  Office Room
-                </label>
-                <input
-                  type="text"
-                  name="office_room"
-                  value={profile.office_room}
-                  onChange={handleChange}
-                  className="w-full p-2 rounded border dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
-                  Department
-                </label>
-                <input
-                  type="text"
-                  name="department"
-                  value={profile.department}
-                  readOnly
-                  className="w-full p-2 rounded border bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
-                />
-              </div>
+                  value={profile.password} 
+                  onChange={handleChange} 
+                  icon={<Lock size={16} />}
+                  placeholder="Leave blank to keep current password"
+              />
             </div>
+          </div>
 
-            <div className="flex justify-end gap-4">
-              <button
-                type="button"
-                onClick={() => setEditMode(false)}
-                className="flex items-center gap-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg transition"
-              >
-                <FaTimes /> Cancel
-              </button>
-
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition disabled:opacity-50"
-              >
-                <FaSave />
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
+          {/* Save Button */}
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/30 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+          >
+            {saving ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      )}
     </div>
   );
 };
+
+// --- Sub Components ---
+
+const Badge = ({ icon, text, color }) => (
+  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest bg-${color}-50 dark:bg-${color}-900/20 text-${color}-600 dark:text-${color}-400 border border-${color}-100 dark:border-${color}-800`}>
+    {icon} {text}
+  </span>
+);
+
+const ViewField = ({ icon, label, value }) => (
+  <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 shadow-sm">
+    <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-400">{icon}</div>
+    <div className="overflow-hidden">
+      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">{value || "—"}</p>
+    </div>
+  </div>
+);
+
+const EditField = ({ label, name, value, onChange, icon, type = "text", placeholder }) => (
+  <div className="space-y-1">
+    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
+    <div className="relative group">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+        {icon}
+      </div>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full pl-12 pr-4 py-3.5 rounded-xl neu-inset bg-transparent outline-none text-sm font-bold text-slate-700 dark:text-white transition-all focus:ring-2 focus:ring-indigo-500/10 placeholder-slate-400/50"
+      />
+    </div>
+  </div>
+);
 
 export default HODSettings;
