@@ -1,59 +1,105 @@
+import { Server } from '@overnightjs/core';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import db from './models/index.js';
+import { responseMiddleware, errorHandler, notFoundHandler } from './middleware/response.middleware.js';
 
-import authRoutes from './routes/auth.routes.js';
-import hodAvailabilityRoutes from './routes/hodAvailability.routes.js';
-import todoRoutes from './routes/todo.route.js';
-import visitLogsRoutes from './routes/visit_logs.routes.js';
-import hodStudentsRoutes from "./routes/hodStudents.routes.js";
-import hodSettingsRoutes from "./routes/hodSettings.routes.js";
-import proctorRoutes from "./routes/proctor.routes.js";
+// Import all controllers
+import { UserController } from './controllers/auth.controller.js';
+import { TodoController } from './controllers/todo.controller.js';
+import { HODAvailabilityController } from './controllers/hodAvailability.controller.js';
+import { HODSettingsController } from './controllers/hodSettings.controller.js';
+import { HODStudentsController } from './controllers/hodStudents.controller.js';
+import { ProctorController } from './controllers/proctor.controller.js';
+import { ProctorDashboardController } from './controllers/proctorDashboard.controller.js';
+import { ProctorStudentController } from './controllers/proctorStudent.controller.js';
+import { VisitLogsController } from './controllers/visitLogs.controller.js';
 
 dotenv.config();
 
-const app = express();
+class AppServer extends Server {
+  constructor() {
+    super();
+    this.setupMiddleware();
+    this.setupControllers();
+    this.setupDatabase();
+  }
 
-app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true
-}));
+  setupMiddleware() {
+    // CORS configuration
+    this.app.use(cors({
+      origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+      methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+      credentials: true
+    }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    // Body parsing middleware
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
 
-app.use((req, res, next) => {
-  console.log("Incoming request:", req.method, req.url);
-  console.log("Headers:", req.headers);
-  next();
-});
+    // Response middleware - Must be before routes
+    this.app.use(responseMiddleware);
 
+    // Request logging middleware
+    this.app.use((req, _res, next) => {
+      console.log("Incoming request:", req.method, req.url);
+      console.log("Headers:", req.headers);
+      next();
+    });
 
-authRoutes(app);  
-app.use('/api/todo', todoRoutes);
-app.use('/api/visit_logs', visitLogsRoutes);
+    // CORS headers middleware for auth routes
+    this.app.use((_req, res, next) => {
+      res.header(
+        "Access-Control-Allow-Headers",
+        "x-access-token, Origin, Content-Type, Accept"
+      );
+      next();
+    });
+  }
 
-app.use('/api/hod/students', hodStudentsRoutes);
+  setupControllers() {
+    // Register all controllers with OvernightJS
+    super.addControllers([
+      new UserController(),
+      new TodoController(),
+      new HODAvailabilityController(),
+      new HODSettingsController(),
+      new HODStudentsController(),
+      new ProctorController(),
+      new ProctorDashboardController(),
+      new ProctorStudentController(),
+      new VisitLogsController()
+    ]);
+  }
 
-db.sequelize.sync({ alter: true })
-  .then(() => console.log("✅ Database synced successfully."))
-  .catch(err => console.error("❌ Failed to sync database:", err.message));
+  setupDatabase() {
+    db.sequelize.sync({ alter: true })
+      .then(() => console.log("✅ Database synced successfully."))
+      .catch(err => {
+        const errorMessage = err?.message || err?.toString() || 'Unknown error';
+        console.error("❌ Failed to sync database:", errorMessage);
+      });
+  }
 
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to the Academic Dashboard API!" });
-});
+  start(port) {
+    // Root route
+    this.app.get("/", (_req, res) => {
+      res.success({ message: "Welcome to the Academic Dashboard API!" }, "API is running");
+    });
 
-// Auth routes
-authRoutes(app);
+    // 404 handler - Must be after all routes
+    this.app.use(notFoundHandler);
 
-// HOD availability routes (now require token)
-app.use('/api/hod/availability', hodAvailabilityRoutes);
+    // Error handler - Must be last
+    this.app.use(errorHandler);
 
-app.use("/api/hod", hodSettingsRoutes);
+    this.app.listen(port, () => {
+      console.log(`🚀 Server running on http://localhost:${port}`);
+    });
+  }
+}
 
-
-app.use("/api/proctor", proctorRoutes);
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+const PORT = process.env.PORT || 5111;
+const server = new AppServer();
+server.start(PORT);
