@@ -1,6 +1,6 @@
 import express from 'express';
-import db from '../models/index.js';
-import { verifyToken } from '../middleware/authJwt.js'; // Correct path
+import db from '../models/index';
+import { verifyToken } from '../middleware/jwt-auth';
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
 router.get('/', verifyToken, async (req, res) => {
     try {
         const tasks = await db.ToDoTask.findAll({
-            where: { user_id: req.user.user_id },
+            where: { user_id: req.body.user.user_id },
             order: [['due_date', 'ASC'], ['createdAt', 'DESC']]
         });
         res.json(tasks);
@@ -23,7 +23,7 @@ router.post('/', verifyToken, async (req, res) => {
     try {
         const { title, priority, due_date } = req.body;
         const task = await db.ToDoTask.create({
-            user_id: req.user.user_id,
+            user_id: req.body.user.user_id,
             title,
             priority: priority || 'medium',
             due_date

@@ -1,10 +1,11 @@
-import db from "../models/index.js";
-import bcrypt from "bcryptjs";
+import db from "../models/index";
+const bcrypt = require('bcryptjs');
+import { Request, Response } from 'express';
 
 // Fetch HOD profile
-export const getHODProfile = async (req, res) => {
+export const getHODProfile = async (req: Request, res: Response) => {
   try {
-    const userId = req.user.user_id; // from token middleware
+    const userId = req.body.user.user_id; // from token middleware
     const hod = await db.User.findByPk(userId, {
       attributes: ["user_id", "name", "email", "role"],
       include: [
@@ -25,9 +26,9 @@ export const getHODProfile = async (req, res) => {
 };
 
 // Update HOD profile
-export const updateHODProfile = async (req, res) => {
+export const updateHODProfile = async (req: Request, res: Response) => {
   try {
-    const userId = req.user.user_id;
+    const userId = req.body.user.user_id;
     const { name, email, password, contact_number, office_room } = req.body;
 
     const hod = await db.User.findByPk(userId);

@@ -1,12 +1,12 @@
-// controllers/proctorController.js
-import db from "../models/index.js";
-import bcrypt from "bcryptjs";
+import db from "../models/index";
+import { Request, Response } from 'express';
+const bcrypt = require('bcryptjs');
 const { User, StudentCore } = db;
 
 // ✅ GET Proctor Profile
-export const getProctorProfile = async (req, res) => {
+export const getProctorProfile = async (req: Request, res: Response) => {
   try {
-    const proctorId = req.userId; // Extracted by verifyToken middleware
+    const proctorId = req.body.userId; // Extracted by verifyToken middleware
     const proctor = await User.findByPk(proctorId, {
   include: [{ model: StudentCore, as: "student_cores" }]
 });
@@ -23,9 +23,9 @@ export const getProctorProfile = async (req, res) => {
 };
 
 // ✅ UPDATE Proctor Profile/Settings
-export const updateProctorProfile = async (req, res) => {
+export const updateProctorProfile = async (req: Request, res: Response) => {
   try {
-    const proctorId = req.userId; // Ensure this comes from your auth middleware
+    const proctorId = req.body.userId; // Ensure this comes from your auth middleware
     const { name, email, password } = req.body;
 
     const proctor = await User.findByPk(proctorId, {
@@ -63,9 +63,9 @@ export const updateProctorProfile = async (req, res) => {
   }
 };
 
-export const getProctorStudents = async (req, res) => {
+export const getProctorStudents = async (req: Request, res: Response) => {
   try {
-    const proctorId = req.userId;
+    const proctorId = req.body.userId;
     console.log("Proctor ID from token:", proctorId);  // 🔹 add this
 
     const students = await db.StudentCore.findAll({

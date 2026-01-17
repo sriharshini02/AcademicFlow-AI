@@ -1,4 +1,5 @@
-import db from "../models/index.js";
+import db from "../models/index";
+import { Request, Response } from 'express';
 
 const {
   HODInfo,
@@ -10,9 +11,9 @@ const {
   StudentExtracurricular
 } = db;
 
-export const getHODStudents = async (req, res) => {
+export const getHODStudents = async (req: Request, res: Response) => {
   try {
-    const hodId = req.userId;
+    const hodId = req.body.userId;
     const { year, section } = req.query; // <-- new filters
 
     if (!hodId) return res.status(400).json({ message: "Missing HOD ID" });
@@ -28,7 +29,7 @@ export const getHODStudents = async (req, res) => {
     const department = hodInfo.department;
 
     // Build filter dynamically
-    const filter = { department };
+    const filter: any = { department };
     if (year) filter.year_group = year;
     if (section) filter.section = section;
 
@@ -48,7 +49,7 @@ export const getHODStudents = async (req, res) => {
     console.log(`✅ Found ${students.length} students for ${department} (${year || "All Years"} - ${section || "All Sections"})`);
 
     const result = await Promise.all(
-      students.map(async (s) => {
+      students.map(async (s: any) => {
         const attendanceRecord = await StudentAttendance.findOne({
           where: { student_id: s.student_id },
           order: [["createdAt", "DESC"]],
@@ -64,7 +65,7 @@ export const getHODStudents = async (req, res) => {
 
         const avgGPA = scores.length
           ? (
-              scores.reduce((sum, sc) => sum + parseFloat(sc.total_marks || 0), 0) /
+              scores.reduce((sum: number, sc: any) => sum + parseFloat(sc.total_marks || 0), 0) /
               scores.length
             ).toFixed(2)
           : "N/A";
@@ -101,13 +102,13 @@ export const getHODStudents = async (req, res) => {
 
 
 
-export const getStudentsByDepartment = async (req, res) => {
+export const getStudentsByDepartment = async (req: Request, res: Response) => {
   try {
     // NOTE: middleware should set req.userId. If not present, we fallback to undefined.
-    const hodId = req.userId;
+    const hodId = req.body.userId;
     console.log("getStudentsByDepartment called. req.userId:", hodId);
 
-    let whereClause = {};
+    let whereClause: any = {};
     if (hodId) {
       const hod = await HODInfo.findOne({ where: { hod_id: hodId }, raw: true });
       console.log("HOD record:", hod);
@@ -131,7 +132,7 @@ export const getStudentsByDepartment = async (req, res) => {
     console.log("Student rows fetched (raw):", students.length, students.slice(0,5));
 
     // Map to array of names
-    const names = students.map((r) => r.full_name);
+    const names = students.map((r: any) => r.full_name);
 
     console.log("Returning student names:", names.slice(0, 10));
     return res.json(names);
@@ -142,7 +143,7 @@ export const getStudentsByDepartment = async (req, res) => {
 };
 
 
-export const getStudentById = async (req, res) => {
+export const getStudentById = async (req: Request, res: Response) => {
   try {
     const studentId = req.params.studentId;
 
@@ -165,18 +166,18 @@ export const getStudentById = async (req, res) => {
       roll_no: student.roll_number,
       department: student.department,
       phone: student.student_personal_info?.phone_number || "-",
-      academicResults: student.student_academic_scores?.map(a => ({
+      academicResults: student.student_academic_scores?.map((a: any) => ({
         id: a.id,
         semester: a.semester,
         subject_name: a.subject_name,
         gpa: a.total_marks
       })),
-      attendance: student.student_attendances?.map(a => ({
+      attendance: student.student_attendances?.map((a: any) => ({
         id: a.id,
         month: a.month,
         percentage: a.attendance_percentage
       })),
-      activities: student.student_extracurriculars?.map(act => ({
+      activities: student.student_extracurriculars?.map((act: any) => ({
         id: act.id,
         activity_name: act.activity_name,
         year: act.date?.getFullYear() || "-"
@@ -190,7 +191,7 @@ export const getStudentById = async (req, res) => {
   }
 };
 
-export const getHODStudentDetails = async (req, res) => {
+export const getHODStudentDetails = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
@@ -211,12 +212,12 @@ export const getHODStudentDetails = async (req, res) => {
 
     // Compute GPA
     const scores = student.student_academic_scores || [];
-    const totalMarks = scores.reduce((sum, s) => sum + (s.total_marks || 0), 0);
+    const totalMarks = scores.reduce((sum: number, s: any) => sum + (s.total_marks || 0), 0);
     const gpa = scores.length ? (totalMarks / scores.length).toFixed(2) : "N/A";
 
     // Latest Attendance
     const latestAttendance = (student.student_attendances || [])
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
     const personal = student.student_personal_info || {};
 
@@ -244,13 +245,13 @@ export const getHODStudentDetails = async (req, res) => {
       attendance_percentage: latestAttendance?.attendance_percentage || "N/A",
       proctor: student.proctor?.name || "N/A",
       
-      academic_scores: scores.map((s) => ({
+      academic_scores: scores.map((s: any) => ({
         semester: s.semester,
         subject_name: s.subject_name,
         total_marks: s.total_marks
       })),
       
-      extracurriculars: (student.student_extracurriculars || []).map((e) => ({
+      extracurriculars: (student.student_extracurriculars || []).map((e: any) => ({
         activity_name: e.activity_name,
         description: e.description,
         achievement_level: e.achievement_level,

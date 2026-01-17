@@ -1,6 +1,6 @@
 import express from 'express';
-import { getAvailability, updateAvailability } from '../controllers/hodAvailability.controller.js';
-import { verifyToken } from '../middleware/authJwt.js';
+import { getAvailability, updateAvailability } from '../controllers/hod-availability.controller';
+import { verifyToken } from '../middleware/jwt-auth';
 
 const router = express.Router();
 
