@@ -1,23 +1,20 @@
-import db from '../models/index.js';
-import bcrypt from 'bcryptjs';
+import { Request, Response } from 'express';
+const bcrypt = require('bcryptjs');
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import db from '../models/index';
+import { JWT_SECRET } from '../config/env.config';
 
-// Load environment variables for the JWT secret key
-dotenv.config();
-
-const User = db.User;
-const HODAvailability = db.HODAvailability;
+const User = (db as any).User;
+const HODAvailability = (db as any).HODAvailability;
 // IMPORTANT: Replace 'YOUR_JWT_SECRET_KEY' with a long, complex, random string 
 // in your .env file before production deployment.
-const JWT_SECRET = process.env.JWT_SECRET || 'asdfghjkmnbvcxwertyuiovcxcvbn'; 
 
 /**
  * Register a new user (HOD or Proctor).
  * @param {object} req - Request object containing user details (name, email, password, role).
  * @param {object} res - Response object.
  */
-export const signup = async (req, res) => {
+export const signup = async (req: Request, res: Response) => {
     try {
         const { name, email, password, role } = req.body;
 
@@ -55,7 +52,7 @@ export const signup = async (req, res) => {
         });
 
     } catch (error) {
-        if (error.name === 'SequelizeUniqueConstraintError') {
+        if ((error as Error).name === 'SequelizeUniqueConstraintError') {
             return res.status(409).send({ message: "Error: Email already in use." });
         }
         console.error("Signup error:", error);
@@ -68,7 +65,7 @@ export const signup = async (req, res) => {
  * @param {object} req - Request object containing email and password.
  * @param {object} res - Response object.
  */
-export const login = async (req, res) => {
+export const login = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
 

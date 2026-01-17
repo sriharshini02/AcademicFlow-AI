@@ -1,11 +1,11 @@
 import express from 'express';
-import db from '../models/index.js';
-import { verifyToken } from '../middleware/authJwt.js';
-
+import db from '../models/index';
+import { verifyToken } from '../middleware/jwt-auth';
+import { Request, Response } from 'express';
 const router = express.Router();
 
 // Get ALL appointments (any status)
-router.get("/", verifyToken, async (req, res) => {
+router.get("/", verifyToken, async (req: Request, res: Response) => {
   try {
     const visits = await db.VisitLog.findAll({
       include: [
@@ -23,7 +23,7 @@ router.get("/", verifyToken, async (req, res) => {
 
 
 // Get queued (new) appointments
-router.get("/queued", verifyToken, async (req, res) => {
+router.get("/queued", verifyToken, async (req: Request, res: Response) => {
   try {
     const visits = await db.VisitLog.findAll({
       where: { status: "Queued" },
@@ -40,7 +40,7 @@ router.get("/queued", verifyToken, async (req, res) => {
 });
 
 // Acknowledge queued requests (mark as Pending)
-router.put("/acknowledge-new", verifyToken, async (req, res) => {
+router.put("/acknowledge-new", verifyToken, async (req: Request, res: Response) => {
   try {
     const [updatedCount] = await db.VisitLog.update(
       { status: "Pending" },
@@ -54,7 +54,7 @@ router.put("/acknowledge-new", verifyToken, async (req, res) => {
 });
 
 // Pending appointments
-router.get('/pending', verifyToken, async (req, res) => {
+router.get('/pending', verifyToken, async (req: Request, res: Response) => {
   try {
     const visits = await db.VisitLog.findAll({
       where: { action_taken: 'Pending' },
@@ -62,7 +62,7 @@ router.get('/pending', verifyToken, async (req, res) => {
       order: [['check_in_time', 'ASC']],
     });
     res.json(visits);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching pending visits', error: err.message });
   }
@@ -79,7 +79,7 @@ router.get('/scheduled', verifyToken, async (req, res) => {
       order: [['scheduled_time', 'ASC']],
     });
     res.json(visits);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching scheduled visits', error: err.message });
   }
@@ -96,7 +96,7 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
     // Handle undefined or null states gracefully
     const currentState = visit.action_taken || visit.status || 'Pending';
 
-    const validTransitions = {
+    const validTransitions: { [key: string]: string[] } = {
       Pending: ['Scheduled', 'Completed', 'Cancelled'],
       Scheduled: ['Scheduled','Completed', 'Cancelled'],
       Completed: [],
@@ -135,7 +135,7 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
     await visit.save();
 
     res.json({ message: 'Appointment updated successfully', visit });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error updating appointment:', err);
     res.status(500).json({ message: 'Failed to update appointment', error: err.message });
   }

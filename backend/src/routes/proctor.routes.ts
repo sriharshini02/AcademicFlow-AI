@@ -1,9 +1,9 @@
 // routes/proctorRoutes.js
 import express from "express";
-import { getProctorProfile, updateProctorProfile, getProctorStudents } from "../controllers/proctor.controller.js";
-import { getProctorDashboardData } from "../controllers/proctorDashboard.controller.js";
-import { verifyToken } from "../middleware/authJwt.js";
-import { addStudent, updateStudent, getStudentDetails } from "../controllers/proctorStudent.controller.js";
+import { addStudent, updateStudent, getStudentDetails } from "../controllers/proctor-student.controller";
+import { getProctorProfile, updateProctorProfile, getProctorStudents } from "../controllers/proctor.controller";
+import { getProctorDashboardData } from "../controllers/proctor-dashboard.controller";
+import { verifyToken } from "../middleware/jwt-auth";
 const router = express.Router();
 
 router.get("/profile", verifyToken, getProctorProfile);

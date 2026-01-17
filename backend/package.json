@@ -2,11 +2,11 @@
   "name": "academic-dashboard-backend",
   "version": "1.0.0",
   "description": "Node.js Express API for the AI-Powered Academic Dashboard.",
-  "main": "server.js",
-  "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "ts-node-dev --respawn src/index.ts", 
+    "build": "tsc",
+    "start": "node dist/index.js"
   },
   "keywords": [
     "node",
@@ -28,6 +28,13 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "@types/bcryptjs": "^3.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.0.9",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }

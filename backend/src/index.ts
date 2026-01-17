@@ -1,22 +1,21 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import db from './models/index.js';
+import db from './models/index';
 
-import authRoutes from './routes/auth.routes.js';
-import hodAvailabilityRoutes from './routes/hodAvailability.routes.js';
-import todoRoutes from './routes/todo.route.js';
-import visitLogsRoutes from './routes/visit_logs.routes.js';
-import hodStudentsRoutes from "./routes/hodStudents.routes.js";
-import hodSettingsRoutes from "./routes/hodSettings.routes.js";
-import proctorRoutes from "./routes/proctor.routes.js";
-
-dotenv.config();
+import authRoutes from './routes/auth.routes';
+import hodAvailabilityRoutes from './routes/hod-availability.routes';
+import todoRoutes from './routes/todo.routes';
+import visitLogsRoutes from './routes/visit-logs.routes';
+import hodStudentsRoutes from "./routes/hod-students.routes";
+import hodSettingsRoutes from "./routes/hod-settings.routes";
+import proctorRoutes from "./routes/proctor.routes";
+import { CLIENT_ORIGIN } from './config/env.config';
+import { PORT } from './config/env.config';
 
 const app = express();
 
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+  origin: CLIENT_ORIGIN || "http://localhost:3000",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true
 }));
@@ -31,6 +30,7 @@ app.use((req, res, next) => {
 });
 
 
+// Auth routes
 authRoutes(app);  
 app.use('/api/todo', todoRoutes);
 app.use('/api/visit_logs', visitLogsRoutes);
@@ -39,14 +39,12 @@ app.use('/api/hod/students', hodStudentsRoutes);
 
 db.sequelize.sync({ alter: true })
   .then(() => console.log("✅ Database synced successfully."))
-  .catch(err => console.error("❌ Failed to sync database:", err.message));
+  .catch((err: any) => console.error("❌ Failed to sync database:", err.message));
 
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Academic Dashboard API!" });
 });
 
-// Auth routes
-authRoutes(app);
 
 // HOD availability routes (now require token)
 app.use('/api/hod/availability', hodAvailabilityRoutes);
@@ -55,5 +53,4 @@ app.use("/api/hod", hodSettingsRoutes);
 
 
 app.use("/api/proctor", proctorRoutes);
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

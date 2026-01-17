@@ -1,6 +1,6 @@
 import express from "express";
-import { getHODProfile, updateHODProfile } from "../controllers/hodSettings.controller.js";
-import { verifyToken } from '../middleware/authJwt.js';
+import { getHODProfile, updateHODProfile } from "../controllers/hod-settings.controller";
+import { verifyToken } from '../middleware/jwt-auth';
 
 const router = express.Router();
 

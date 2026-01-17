@@ -1,7 +1,7 @@
 // routes/hodStudents.js
 import express from "express";
-import { getStudentsByDepartment, getStudentById,getHODStudents, getHODStudentDetails } from "../controllers/hodStudents.controller.js";
-import { verifyToken } from "../middleware/authJwt.js";
+import { getStudentById,getHODStudents, getHODStudentDetails } from "../controllers/hod-students.controller";
+import { verifyToken } from "../middleware/jwt-auth";
 
 const router = express.Router();
 

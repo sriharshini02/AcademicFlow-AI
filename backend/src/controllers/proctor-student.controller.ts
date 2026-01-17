@@ -1,12 +1,12 @@
-import db from "../models/index.js";
-
+import db from "../models/index";
+import { Request, Response } from 'express';
 /**
  * ✅ Add new student (Core + Personal Info)
  */
-export const addStudent = async (req, res) => {
+export const addStudent = async (req: Request, res: Response) => {
   const t = await db.sequelize.transaction();
   try {
-    const proctorId = req.userId; // from auth middleware
+    const proctorId = req.body.userId; // from auth middleware
     const {
       roll_number,
       full_name,
@@ -58,7 +58,7 @@ export const addStudent = async (req, res) => {
 /**
  * ✏️ Update student (Core or Personal Info)
  */
-export const updateStudent = async (req, res) => {
+export const updateStudent = async (req: Request, res: Response) => {
   const { id } = req.params;
   const {
     full_name,
@@ -107,7 +107,7 @@ export const updateStudent = async (req, res) => {
 /**
  * 🔍 Get full student details with associations
  */
-export const getStudentDetails = async (req, res) => {
+export const getStudentDetails = async (req: Request, res: Response) => {
   const { id } = req.params;
 
   try {
