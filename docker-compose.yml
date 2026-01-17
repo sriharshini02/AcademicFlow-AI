@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  # 1. Database Service
+  mysqldb:
+    image: mysql:8.0
+    container_name: academic_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword  # You can change this
+      MYSQL_DATABASE: academic_db
+      MYSQL_USER: harshini
+      MYSQL_PASSWORD: harshini
+    ports:
+      - "3307:3306" # Maps localhost:3307 to container:3306 (avoids conflict with local MySQL)
+    volumes:
+      - mysql_data:/var/lib/mysql # Saves data so it persists after restart
+
+  # 2. Backend Service
+  backend:
+    build: ./backend
+    container_name: academic_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      # HERE IS THE FIX FOR YOUR CONFIG:
+      DB_HOST: mysqldb      # Must match the service name above (line 5)
+      DB_USER: harshini     # Must match MYSQL_USER above
+      DB_PASSWORD: harshini # Must match MYSQL_PASSWORD above
+      DB_NAME: academic_db
+      JWT_SECRET: asdfghjkmnbvcxwertyuiovcxcvbn
+      CLIENT_ORIGIN: http://localhost:3000
+    depends_on:
+      - mysqldb
+
+  # 3. Frontend Service
+  frontend:
+    build: ./frontend
+    container_name: academic_frontend
+    ports:
+      - "3000:80" # Maps localhost:3000 to Nginx port 80
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
