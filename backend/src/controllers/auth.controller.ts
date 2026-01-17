@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 import jwt from 'jsonwebtoken';
 import db from '../models/index';
 import { JWT_SECRET } from '../config/env.config';
+import { signupSchema } from '../validators/auth.validator';
 
 const User = (db as any).User;
 const HODAvailability = (db as any).HODAvailability;
@@ -16,12 +17,13 @@ const HODAvailability = (db as any).HODAvailability;
  */
 export const signup = async (req: Request, res: Response) => {
     try {
-        const { name, email, password, role } = req.body;
 
-        // 1. Basic validation
-        if (!name || !email || !password || !role) {
-            return res.status(400).send({ message: "All fields (name, email, password, role) are required." });
+        const { error, value } = signupSchema.validate(req.body);
+        if (error) {
+            return res.status(400).send({ message: error.message });
         }
+        const { name, email, password, role } = value;
+
         
         // 2. Hash the password securely
         const salt = await bcrypt.genSalt(10);

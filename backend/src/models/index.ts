@@ -29,7 +29,7 @@ db.User = (sequelize as any).define('user', {
   email: { type: STRING(100), allowNull: false, unique: true },
   password_hash: { type: STRING(255), allowNull: false },
   role: { type: STRING(10), allowNull: false, validate: { isIn: [['HOD', 'Proctor']] } },
-  name: { type: STRING(100), allowNull: false },
+  name: { type: STRING(30), allowNull: false },
   created_at: { type: DATE, allowNull: false, defaultValue: NOW }
 }, { tableName: 'users' });
 
