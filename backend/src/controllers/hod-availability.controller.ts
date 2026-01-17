@@ -6,7 +6,7 @@ import { Request, Response } from 'express';
 export const getAvailability = async (req: Request, res: Response) => {
   try {
     const { user } = req.body;
-    const availability = await HODAvailability.findOne({ where: { hod_id: user.userId } });
+    const availability = await HODAvailability.findOne({ where: { hod_id: user.user_id } });
     if (!availability) return res.status(404).json({ message: "HOD not found" });
     res.json(availability);
   } catch (err) {

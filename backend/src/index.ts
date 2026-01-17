@@ -30,6 +30,7 @@ app.use((req, res, next) => {
 });
 
 
+// Auth routes
 authRoutes(app);  
 app.use('/api/todo', todoRoutes);
 app.use('/api/visit_logs', visitLogsRoutes);
@@ -44,8 +45,6 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to the Academic Dashboard API!" });
 });
 
-// Auth routes
-authRoutes(app);
 
 // HOD availability routes (now require token)
 app.use('/api/hod/availability', hodAvailabilityRoutes);
