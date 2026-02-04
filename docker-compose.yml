@@ -1,22 +1,22 @@
 version: '3.8'
 
 services:
-  # 1. Database Service
+  # 1. Database Service (Unchanged)
   mysqldb:
     image: mysql:8.0
     container_name: academic_mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword  # You can change this
+      MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: academic_db
       MYSQL_USER: harshini
       MYSQL_PASSWORD: harshini
     ports:
-      - "3307:3306" # Maps localhost:3307 to container:3306 (avoids conflict with local MySQL)
+      - "3307:3306"
     volumes:
-      - mysql_data:/var/lib/mysql # Saves data so it persists after restart
+      - mysql_data:/var/lib/mysql
 
-  # 2. Backend Service
+  # 2. Backend Service (Add Volumes!)
   backend:
     build: ./backend
     container_name: academic_backend
@@ -24,24 +24,36 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # HERE IS THE FIX FOR YOUR CONFIG:
-      DB_HOST: mysqldb      # Must match the service name above (line 5)
-      DB_USER: harshini     # Must match MYSQL_USER above
-      DB_PASSWORD: harshini # Must match MYSQL_PASSWORD above
+      DB_HOST: mysqldb
+      DB_USER: harshini
+      DB_PASSWORD: harshini
       DB_NAME: academic_db
       JWT_SECRET: asdfghjkmnbvcxwertyuiovcxcvbn
       CLIENT_ORIGIN: http://localhost:3000
     depends_on:
       - mysqldb
+    volumes:
+      - ./backend:/usr/src/app       <-- Match the Dockerfile path!
+      - /usr/src/app/node_modules    <-- Match the Dockerfile path!
+    # 👇 Use nodemon to restart automatically when files change
+    command: npm run dev           
+    
 
-  # 3. Frontend Service
+  # 3. Frontend Service (Add Volumes!)
   frontend:
     build: ./frontend
     container_name: academic_frontend
     ports:
-      - "3000:80" # Maps localhost:3000 to Nginx port 80
+      - "3000:80"  
     depends_on:
       - backend
+    environment:
+      # Windows specific fix for hot-reloading
+      - CHOKIDAR_USEPOLLING=true 
+    # ✅ ADD THIS SECTION
+    # volumes:
+    #  - ./frontend:/app
+    #  - /app/node_modules
 
 volumes:
   mysql_data:

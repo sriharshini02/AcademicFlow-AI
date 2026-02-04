@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "tailwind:init": "tailwindcss init -p"
+    
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.13",
