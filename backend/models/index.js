@@ -42,7 +42,6 @@ db.StudentCore = sequelize.define('student_core', {
   assigned_proctor_id: { type: Sequelize.INTEGER },
   admission_type: { type: Sequelize.ENUM('NORMAL', 'LATERAL') },
   section: { type: Sequelize.STRING(5) },
-  // ✅ NEW FIELDS
   joining_year: { type: Sequelize.STRING(10) },
   completion_year: { type: Sequelize.STRING(10) }
 }, { tableName: 'students_core' });
@@ -88,7 +87,7 @@ db.ToDoTask = sequelize.define('todo_task', {
 }, { tableName: 'todo_tasks' });
 
 // ------------------------------------------------------
-// 2️⃣ NEW MODELS FOR STUDENTS PAGE
+// 2️⃣ STUDENT DETAILS MODELS
 // ------------------------------------------------------
 
 // Personal Info Model
@@ -104,21 +103,32 @@ db.StudentPersonalInfo = sequelize.define('student_personal_info', {
   mother_phone: { type: Sequelize.STRING(50) },
   address: { type: Sequelize.TEXT },
   gender: { type: Sequelize.STRING(10) },
-  // ✅ NEW FIELD
   date_of_birth: { type: Sequelize.DATEONLY } 
 }, { tableName: 'students_personal_info' });
 
-// Academic Scores
+// ✅ UPDATED: Academic Scores (Subject-wise Marks)
 db.StudentAcademicScore = sequelize.define('student_academic_scores', {
   id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
   student_id: { type: Sequelize.INTEGER, allowNull: false },
   academic_year: { type: Sequelize.STRING(10) },
   semester: { type: Sequelize.INTEGER },
+  subject_code: { type: Sequelize.STRING(20) }, // New Field
   subject_name: { type: Sequelize.STRING(100) },
+  credits: { type: Sequelize.DECIMAL(3,1) },    // New Field
   internal_marks: { type: Sequelize.FLOAT },
-  external_marks: { type: Sequelize.FLOAT },
-  total_marks: { type: Sequelize.FLOAT }
+  grade_points: { type: Sequelize.DECIMAL(4,2) } // Renamed from external_marks
+  // total_marks REMOVED
 }, { tableName: 'students_academic_scores' });
+
+// ✅ NEW: Semester Summaries (SGPA/CGPA)
+db.StudentSemesterSummary = sequelize.define('student_semester_summary', {
+  id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+  student_id: { type: Sequelize.INTEGER, allowNull: false },
+  semester: { type: Sequelize.INTEGER, allowNull: false },
+  total_credits_earned: { type: Sequelize.DECIMAL(5,1) },
+  sgpa: { type: Sequelize.DECIMAL(4,2) },
+  cgpa: { type: Sequelize.DECIMAL(4,2) }
+}, { tableName: 'student_semester_summaries' });
 
 // Midterm Scores
 db.StudentMidtermScore = sequelize.define('student_midterm_scores', {
@@ -193,8 +203,13 @@ db.ToDoTask.belongsTo(db.User, { foreignKey: 'user_id', as: 'user' });
 db.StudentCore.hasOne(db.StudentPersonalInfo, { foreignKey: 'student_id' });
 db.StudentPersonalInfo.belongsTo(db.StudentCore, { foreignKey: 'student_id' });
 
+// ✅ Scores Relationship
 db.StudentCore.hasMany(db.StudentAcademicScore, { foreignKey: 'student_id' });
 db.StudentAcademicScore.belongsTo(db.StudentCore, { foreignKey: 'student_id' });
+
+// ✅ NEW: Semester Summary Relationship
+db.StudentCore.hasMany(db.StudentSemesterSummary, { foreignKey: 'student_id' });
+db.StudentSemesterSummary.belongsTo(db.StudentCore, { foreignKey: 'student_id' });
 
 db.StudentCore.hasMany(db.StudentMidtermScore, { foreignKey: 'student_id' });
 db.StudentMidtermScore.belongsTo(db.StudentCore, { foreignKey: 'student_id' });
@@ -211,6 +226,5 @@ db.StudentExtracurricular.belongsTo(db.StudentCore, { foreignKey: 'student_id' }
 // Relationship: One HOD (User) has one HODInfo
 db.User.hasOne(db.HODInfo, { foreignKey: 'hod_id' });
 db.HODInfo.belongsTo(db.User, { foreignKey: 'hod_id', as: 'hod' });
-
 
 export default db;

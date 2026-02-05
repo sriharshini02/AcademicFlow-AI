@@ -13,10 +13,11 @@ const {
 export const getHODStudents = async (req, res) => {
   try {
     const hodId = req.userId;
-    const { year, section } = req.query; // <-- new filters
+    const { year, section } = req.query;
 
     if (!hodId) return res.status(400).json({ message: "Missing HOD ID" });
 
+    // 1. Get HOD Dept
     const hodInfo = await HODInfo.findOne({
       where: { hod_id: hodId },
       raw: true,
@@ -27,11 +28,12 @@ export const getHODStudents = async (req, res) => {
 
     const department = hodInfo.department;
 
-    // Build filter dynamically
+    // 2. Build Filter
     const filter = { department };
     if (year) filter.year_group = year;
     if (section) filter.section = section;
 
+    // 3. Get Students
     const students = await StudentCore.findAll({
       where: filter,
       attributes: [
@@ -45,10 +47,12 @@ export const getHODStudents = async (req, res) => {
       raw: true,
     });
 
-    console.log(`✅ Found ${students.length} students for ${department} (${year || "All Years"} - ${section || "All Sections"})`);
+    console.log(`✅ Found ${students.length} students for ${department}`);
 
+    // 4. Calculate Stats (using NEW schema)
     const result = await Promise.all(
       students.map(async (s) => {
+        // Attendance Logic
         const attendanceRecord = await StudentAttendance.findOne({
           where: { student_id: s.student_id },
           order: [["createdAt", "DESC"]],
@@ -56,19 +60,37 @@ export const getHODStudents = async (req, res) => {
           raw: true,
         });
 
-        const scores = await StudentAcademicScore.findAll({
-          where: { student_id: s.student_id },
-          attributes: ["total_marks"],
-          raw: true,
+        // ✅ FIXED: GPA Logic using 'student_semester_summaries' (CGPA)
+        // Instead of averaging individual marks, we should grab the latest CGPA.
+        // If you don't have summaries yet, we fallback to averaging 'grade_points'.
+        
+        let cgpa = "N/A";
+        
+        // Option A: Try to get Official CGPA from Summary Table (Best)
+        const summary = await db.StudentSemesterSummary.findOne({
+           where: { student_id: s.student_id },
+           order: [['semester', 'DESC']],
+           attributes: ['cgpa'],
+           raw: true
         });
 
-        const avgGPA = scores.length
-          ? (
-              scores.reduce((sum, sc) => sum + parseFloat(sc.total_marks || 0), 0) /
-              scores.length
-            ).toFixed(2)
-          : "N/A";
+        if (summary) {
+            cgpa = summary.cgpa;
+        } else {
+            // Option B: Fallback - Average the 'grade_points' from scores table
+            const scores = await StudentAcademicScore.findAll({
+              where: { student_id: s.student_id },
+              attributes: ["grade_points"], // ✅ Changed from 'total_marks'
+              raw: true,
+            });
 
+            if (scores.length > 0) {
+              const totalPoints = scores.reduce((sum, sc) => sum + parseFloat(sc.grade_points || 0), 0);
+              cgpa = (totalPoints / scores.length).toFixed(2);
+            }
+        }
+
+        // Get Proctor Name
         let proctorName = "N/A";
         if (s.assigned_proctor_id) {
           const proctor = await User.findOne({
@@ -86,7 +108,7 @@ export const getHODStudents = async (req, res) => {
           year: s.year_group,
           section: s.section || "N/A",
           attendance: attendanceRecord ? attendanceRecord.attendance_percentage : "N/A",
-          gpa: avgGPA,
+          gpa: cgpa, // ✅ Now sending correct CGPA
           proctor: proctorName,
         };
       })
@@ -197,7 +219,7 @@ export const getHODStudentDetails = async (req, res) => {
     const student = await StudentCore.findOne({
       where: { student_id: id },
       include: [
-        { model: StudentPersonalInfo, required: false }, // Fetches date_of_birth
+        { model: StudentPersonalInfo, required: false },
         { model: StudentAcademicScore, required: false },
         { model: StudentAttendance, required: false },
         { model: StudentExtracurricular, required: false },
@@ -209,12 +231,11 @@ export const getHODStudentDetails = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Compute GPA
+    // ✅ FIX 1: Compute GPA using grade_points
     const scores = student.student_academic_scores || [];
-    const totalMarks = scores.reduce((sum, s) => sum + (s.total_marks || 0), 0);
-    const gpa = scores.length ? (totalMarks / scores.length).toFixed(2) : "N/A";
+    const totalPoints = scores.reduce((sum, s) => sum + parseFloat(s.grade_points || 0), 0);
+    const gpa = scores.length ? (totalPoints / scores.length).toFixed(2) : "N/A";
 
-    // Latest Attendance
     const latestAttendance = (student.student_attendances || [])
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
 
@@ -226,10 +247,7 @@ export const getHODStudentDetails = async (req, res) => {
       department: student.department,
       year_group: student.year_group,
       section: student.section || "N/A",
-      
-      // ✅ FIX: Map 'date_of_birth' from DB to 'dob' for frontend
       dob: personal.date_of_birth ? new Date(personal.date_of_birth).toLocaleDateString() : "N/A",
-      
       gender: personal.gender || "N/A",
       phone: personal.phone_number || "N/A",
       email: personal.college_email || "N/A",
@@ -240,14 +258,16 @@ export const getHODStudentDetails = async (req, res) => {
       mother_phone: personal.mother_phone || "N/A",
       
       gpa,
-      total_marks: totalMarks,
+      // total_marks REMOVED -> You can replace with 'total_credits' if needed
       attendance_percentage: latestAttendance?.attendance_percentage || "N/A",
       proctor: student.proctor?.name || "N/A",
       
       academic_scores: scores.map((s) => ({
         semester: s.semester,
         subject_name: s.subject_name,
-        total_marks: s.total_marks
+        // ✅ FIX 2: Send grade_points instead of total_marks
+        grade_points: s.grade_points, 
+        subject_code: s.subject_code
       })),
       
       extracurriculars: (student.student_extracurriculars || []).map((e) => ({

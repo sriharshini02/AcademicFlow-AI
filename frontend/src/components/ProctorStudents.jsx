@@ -32,11 +32,68 @@ const ProctorStudents = () => {
   };
 
   // Compute Stats
+  // 📊 Compute Real Analytics (Robust Version)
   const stats = useMemo(() => {
     const total = students.length;
-    const avgAtt = 85; 
-    const avgGPA = 8.6;
-    return { total, avgAtt, avgGPA };
+
+    // 1. Fallback: If no students, return zeros
+    if (total === 0) return { total: 0, avgAtt: "0", avgGPA: "0.00" };
+
+    let totalAttendance = 0;
+    let totalGPA = 0;
+    let attendanceCount = 0;
+    let gpaCount = 0;
+
+    students.forEach((student) => {
+      // 🔍 2. ROBUST ATTENDANCE CHECK
+      // Checks for all possible naming conventions (snake_case, PascalCase, singular)
+      const attendanceRecords = 
+        student.student_attendances || 
+        student.StudentAttendances || 
+        student.StudentAttendance || 
+        [];
+
+      if (attendanceRecords.length > 0) {
+        // Sort descending by date (newest first)
+        const latest = attendanceRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        const attValue = parseFloat(latest?.attendance_percentage);
+        
+        if (!isNaN(attValue)) {
+          totalAttendance += attValue;
+          attendanceCount++;
+        }
+      }
+
+      // 🔍 3. ROBUST GPA CHECK
+      const academicScores = 
+        student.student_academic_scores || 
+        student.StudentAcademicScores || 
+        student.StudentAcademicScore || 
+        [];
+
+      if (academicScores.length > 0) {
+        const totalMarks = academicScores.reduce((sum, record) => sum + (parseFloat(record.total_marks) || 0), 0);
+        const averageMarks = totalMarks / academicScores.length;
+        
+        // Convert 100-scale to 10-scale logic (e.g. 85 marks -> 8.5 GPA)
+        const studentGPA = averageMarks > 10 ? averageMarks / 10 : averageMarks;
+        
+        if (!isNaN(studentGPA)) {
+            totalGPA += studentGPA;
+            gpaCount++;
+        }
+      }
+    });
+
+    // 4. Calculate Final Averages
+    const finalAvgAtt = attendanceCount > 0 ? (totalAttendance / attendanceCount).toFixed(1) : "0";
+    const finalAvgGPA = gpaCount > 0 ? (totalGPA / gpaCount).toFixed(2) : "0.00";
+
+    return { 
+      total, 
+      avgAtt: finalAvgAtt, 
+      avgGPA: finalAvgGPA 
+    };
   }, [students]);
 
   return (

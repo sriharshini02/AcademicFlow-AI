@@ -306,7 +306,7 @@ const HODStudents = () => {
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-4">
                        <DetailBox label="Current GPA" value={details.gpa} highlight="emerald" />
-                       <DetailBox label="Total Marks" value={details.total_marks} />
+                       
                     </div>
                     
                     <div className="p-5 rounded-2xl neu-inset bg-slate-50/50 dark:bg-slate-900/30">
@@ -316,7 +316,7 @@ const HODStudents = () => {
                            details.academic_scores.map((a, idx) => (
                              <li key={idx} className="flex justify-between items-center text-sm p-2 rounded-lg bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
                                 <span className="font-medium text-slate-700 dark:text-slate-200">{a.subject_name} <span className="text-slate-400 text-xs ml-1">(Sem {a.semester})</span></span>
-                                <span className="font-bold text-indigo-500">{a.total_marks}</span>
+                                
                              </li>
                            ))
                          ) : (
