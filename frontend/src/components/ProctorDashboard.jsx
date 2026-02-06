@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Users, CalendarCheck, TrendingUp, AlertTriangle, Loader } from "lucide-react";
+import { Users, CalendarCheck, GraduationCap, AlertTriangle } from "lucide-react";
 
 const ProctorDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -42,15 +42,15 @@ const ProctorDashboard = () => {
       bg: "bg-emerald-50 dark:bg-emerald-900/20"
     },
     { 
-      title: "Avg Internal Marks", 
-      value: `${stats.avgInternal}`, 
-      icon: <TrendingUp size={24} />, 
-      color: "text-indigo-500",
-      bg: "bg-indigo-50 dark:bg-indigo-900/20"
+      title: "Class Avg CGPA",  // ✅ Replaced Internal Marks with CGPA
+      value: stats.avgCGPA || "N/A", 
+      icon: <GraduationCap size={24} />, 
+      color: "text-amber-500",
+      bg: "bg-amber-50 dark:bg-amber-900/20"
     },
     { 
       title: "Action Required", 
-      value: stats.lowPerformance, 
+      value: stats.lowPerformance, // ✅ Real count of students with low SGPA
       label: "Low Performers",
       icon: <AlertTriangle size={24} />, 
       color: "text-rose-500",
@@ -119,9 +119,9 @@ const ProctorDashboard = () => {
                     <td className="p-5">{s.year_group}</td>
                     <td className="p-5 text-xs uppercase tracking-wider text-slate-500">{s.department}</td>
                     <td className="p-5 text-right">
-                       <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-600 border border-emerald-200 uppercase tracking-widest">
-                         Active
-                       </span>
+                        <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-600 border border-emerald-200 uppercase tracking-widest">
+                          Active
+                        </span>
                     </td>
                   </tr>
                 ))

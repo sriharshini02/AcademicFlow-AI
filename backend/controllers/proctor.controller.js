@@ -129,6 +129,8 @@ export const updateStudent = async (req, res) => {
 // 3. STUDENT DETAILS (The Safe Version)
 // =========================================================
 
+// 📂 backend/controllers/proctor.controller.js
+
 export const getStudentDetails = async (req, res) => {
   try {
     const { id } = req.params; 
@@ -138,7 +140,7 @@ export const getStudentDetails = async (req, res) => {
       { model: StudentPersonalInfo, required: false },
       { model: StudentAttendance, required: false },
       { model: StudentAcademicScore, required: false },
-      ...(StudentExtracurricular ? [{ model: StudentExtracurricular, required: false }] : []),
+      { model: StudentExtracurricular, required: false },
       { model: User, as: 'proctor', attributes: ['name'], required: false }
     ];
 
@@ -149,10 +151,21 @@ export const getStudentDetails = async (req, res) => {
 
     if (!student) return res.status(404).json({ message: "Student not found" });
 
-    // Data Mapping
+    // ✅ FIX 1: Correct CGPA Calculation (Use grade_points)
     const scores = student.student_academic_scores || [];
-    const totalMarks = scores.reduce((sum, s) => sum + (parseFloat(s.total_marks) || 0), 0);
-    const gpa = scores.length ? (totalMarks / scores.length).toFixed(2) : "N/A";
+    
+    // Sum up points (check grade_points first, fallback to total_marks)
+    const totalPoints = scores.reduce((sum, s) => sum + (parseFloat(s.grade_points || s.total_marks) || 0), 0);
+    
+    // Calculate Average
+    let calculatedGPA = scores.length ? (totalPoints / scores.length) : 0;
+    
+    // Normalize: If GPA > 10 (e.g. 75), convert to 10-scale (7.5)
+    if (calculatedGPA > 10) calculatedGPA = calculatedGPA / 10;
+
+    const gpa = calculatedGPA > 0 ? calculatedGPA.toFixed(2) : "N/A";
+
+    // Attendance
     const latestAttendance = (student.student_attendances || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     const personal = student.student_personal_info || {};
     const extracurriculars = student.student_extracurriculars || [];
@@ -169,9 +182,18 @@ export const getStudentDetails = async (req, res) => {
       phone: personal.phone_number || "-",
       father_name: personal.father_name || "-",
       address: personal.address || "-",
-      gpa,
+      
+      gpa, // ✅ Now sends the correct GPA
       attendance_percentage: latestAttendance?.attendance_percentage || "0",
-      academic_scores: scores.map(s => ({ id: s.id, semester: s.semester, subject: s.subject_name, marks: s.total_marks })),
+      
+      // ✅ FIX 2: Send grade_points to frontend
+      academic_scores: scores.map(s => ({ 
+          id: s.id, 
+          semester: s.semester, 
+          grade_points: s.grade_points, // Added this field
+          marks: s.total_marks 
+      })),
+      
       extracurriculars: extracurriculars.map(e => ({ id: e.id, activity: e.activity_name, level: e.achievement_level, date: e.date }))
     });
 
