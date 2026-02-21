@@ -2,12 +2,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { 
   Search, Filter, User, GraduationCap, Users, X, Award, Phone, 
-  TrendingUp, BookOpen, Activity, Mail, MapPin 
+  TrendingUp, BookOpen, Activity, Mail, MapPin, 
+  PieChart as PieIcon, BarChart2, LayoutList
 } from "lucide-react";
 
 // CHARTS LIBRARY
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, PieChart, Pie, Cell, Legend
 } from "recharts";
 
 const HODStudents = () => {
@@ -16,6 +18,9 @@ const HODStudents = () => {
   const [loading, setLoading] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState(null); 
   
+  // 🔹 Tab State
+  const [activeTab, setActiveTab] = useState("analytics");
+
   // Filter States
   const [yearFilter, setYearFilter] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
@@ -61,22 +66,67 @@ const HODStudents = () => {
     setFiltered(result);
   }, [yearFilter, sectionFilter, search, students]);
 
-  // 📊 Compute dashboard stats
+  // 📊 Compute dashboard KPIs
   const stats = useMemo(() => {
-    if (!filtered.length) return { total: 0, avgGPA: "0.0", avgAttendance: "0%" };
-    const total = filtered.length;
-    // Handle GPA parsing safely (Marks vs GPA)
-    const gpas = filtered.map((s) => {
+    if (!students.length) return { total: 0, avgGPA: "0.0", avgAttendance: "0%" };
+    const total = students.length;
+    // Handle GPA parsing safely
+    const gpas = students.map((s) => {
         let val = parseFloat(s.gpa);
         if(val > 10) val = val/10; 
         return val;
     }).filter((v) => !isNaN(v));
 
-    const att = filtered.map((s) => parseFloat(s.attendance)).filter((v) => !isNaN(v));
+    const att = students.map((s) => parseFloat(s.attendance)).filter((v) => !isNaN(v));
     const avgGPA = gpas.length ? (gpas.reduce((a, b) => a + b, 0) / gpas.length).toFixed(2) : "0.0";
     const avgAttendance = att.length ? (att.reduce((a, b) => a + b, 0) / att.length).toFixed(1) + "%" : "0%";
+    
     return { total, avgGPA, avgAttendance };
-  }, [filtered]);
+  }, [students]);
+
+  // 📈 HOD ANALYTICS: Year-wise GPA Average
+  const yearWiseData = useMemo(() => {
+    const years = { "1": { total: 0, count: 0 }, "2": { total: 0, count: 0 }, "3": { total: 0, count: 0 }, "4": { total: 0, count: 0 } };
+    
+    students.forEach(s => {
+      if (years[s.year]) {
+        let val = parseFloat(s.gpa);
+        if (val > 10) val = val / 10;
+        if (!isNaN(val)) {
+          years[s.year].total += val;
+          years[s.year].count++;
+        }
+      }
+    });
+
+    return Object.keys(years).map(year => ({
+      name: `Year ${year}`,
+      avgGPA: years[year].count ? parseFloat((years[year].total / years[year].count).toFixed(2)) : 0
+    }));
+  }, [students]);
+
+  // 📈 HOD ANALYTICS: Department CGPA Distribution
+  const cgpaDistributionData = useMemo(() => {
+    let buckets = { struggle: 0, average: 0, good: 0, excellent: 0 };
+
+    students.forEach(student => {
+      let val = parseFloat(student.gpa);
+      if (val > 10) val = val / 10;
+      if (isNaN(val)) return;
+
+      if (val < 6.0) buckets.struggle++;
+      else if (val < 7.5) buckets.average++;
+      else if (val < 9.0) buckets.good++;
+      else buckets.excellent++;
+    });
+
+    return [
+      { name: "Struggling (<6.0)", value: buckets.struggle, color: "#ef4444" },
+      { name: "Average (6.0-7.5)", value: buckets.average, color: "#f59e0b" },
+      { name: "Good (7.5-9.0)", value: buckets.good, color: "#3b82f6" },
+      { name: "Excellent (9.0+)", value: buckets.excellent, color: "#10b981" }
+    ];
+  }, [students]);
 
   const handleRowClick = (student) => {
     setSelectedStudentId(student.id);
@@ -89,130 +139,208 @@ const HODStudents = () => {
   if (loading) return <div className="p-10 text-center text-slate-400 font-bold italic animate-pulse">Syncing Records...</div>;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 relative">
       
-      {/* Header & Stats Row */}
-      <div className="flex flex-col xl:flex-row gap-6">
-        <div className="flex-1">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Academic & Personal Data</p>
+      {/* 1. HEADER & TABS */}
+      <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-4">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800 dark:text-white">Department Overview</h1>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">HOD Control Center</p>
         </div>
 
-        <div className="flex gap-4">
-           <div className="px-6 py-3 rounded-2xl neu-raised bg-white dark:bg-slate-900 border border-white/20 flex flex-col items-center min-w-[100px]">
-              <span className="text-2xl font-black text-indigo-500">{stats.total}</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total</span>
-           </div>
-           <div className="px-6 py-3 rounded-2xl neu-raised bg-white dark:bg-slate-900 border border-white/20 flex flex-col items-center min-w-[100px]">
-              <span className="text-2xl font-black text-emerald-500">{stats.avgGPA}</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avg GPA</span>
-           </div>
-           <div className="px-6 py-3 rounded-2xl neu-raised bg-white dark:bg-slate-900 border border-white/20 flex flex-col items-center min-w-[100px]">
-              <span className="text-2xl font-black text-amber-500">{stats.avgAttendance}</span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Attendance</span>
-           </div>
-        </div>
-      </div>
-
-      {/* 🔍 Controls */}
-      <div className="p-2 rounded-2xl neu-raised bg-slate-50/50 dark:bg-slate-900/20 border border-white/20 flex flex-col md:flex-row items-center gap-4">
-        <div className="flex-1 w-full relative group">
-           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
-              <Search size={18} />
-           </div>
-           <input
-             type="text"
-             placeholder="Search by Name or Roll No..."
-             className="w-full pl-12 pr-4 py-3 rounded-xl neu-inset bg-transparent outline-none text-sm font-bold text-slate-700 dark:text-white placeholder-slate-400/70"
-             value={search}
-             onChange={(e) => setSearch(e.target.value)}
-           />
-        </div>
-
-        <div className="flex gap-3 w-full md:w-auto">
-           <div className="relative">
-             <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-             <select
-               className="pl-9 pr-8 py-3 rounded-xl neu-inset bg-transparent outline-none text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-500 transition-colors appearance-none"
-               value={yearFilter}
-               onChange={(e) => setYearFilter(e.target.value)}
-             >
-               <option value="">All Years</option>
-               <option value="1">1st Year</option>
-               <option value="2">2nd Year</option>
-               <option value="3">3rd Year</option>
-               <option value="4">4th Year</option>
-             </select>
-           </div>
-
-           <div className="relative">
-             <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-             <select
-               className="pl-9 pr-8 py-3 rounded-xl neu-inset bg-transparent outline-none text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-500 transition-colors appearance-none"
-               value={sectionFilter}
-               onChange={(e) => setSectionFilter(e.target.value)}
-             >
-               <option value="">All Sections</option>
-               <option value="A">Section A</option>
-               <option value="B">Section B</option>
-               <option value="C">Section C</option>
-               <option value="D">Section D</option>
-             </select>
-           </div>
+        <div className="flex p-1.5 rounded-xl neu-inset bg-slate-100 dark:bg-slate-900/50 w-full md:w-auto overflow-x-auto no-scrollbar">
+          {[
+            { id: "analytics", icon: <Activity size={14} />, label: "Analytics" },
+            { id: "list", icon: <LayoutList size={14} />, label: "Student Directory" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "neu-raised bg-white dark:bg-slate-800 text-indigo-600 shadow-sm transform scale-105"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              {tab.icon} {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* 🧾 Students Table */}
-      <div className="rounded-[1.5rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <th className="p-5">Roll No</th>
-                <th className="p-5">Name</th>
-                <th className="p-5">Year</th>
-                <th className="p-5">Section</th>
-                <th className="p-5 text-center">Attendance</th>
-                <th className="p-5 text-center">GPA</th>
-                <th className="p-5">Proctor</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm font-medium text-slate-600 dark:text-slate-300 divide-y divide-slate-50 dark:divide-slate-800/50">
-              {filtered.length === 0 ? (
-                 <tr>
-                   <td colSpan="7" className="p-10 text-center text-slate-400 italic">No student records match your filters.</td>
-                 </tr>
-              ) : (
-                filtered.map((stu, i) => (
-                  <tr
-                    key={i}
-                    onClick={() => handleRowClick(stu)}
-                    className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+      {/* 2. TAB CONTENT AREA */}
+      <div className="min-h-[500px]">
+
+        {/* 📊 TAB 1: ANALYTICS OVERVIEW */}
+        {activeTab === "analytics" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            
+            {/* Department KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <SummaryCard title="Total Students" value={stats.total} icon={<Users size={24} />} color="text-indigo-500" />
+              <SummaryCard title="Dept Avg CGPA" value={stats.avgGPA} icon={<GraduationCap size={24} />} color="text-emerald-500" />
+              <SummaryCard title="Avg Attendance" value={stats.avgAttendance} icon={<Activity size={24} />} color="text-amber-500" />
+            </div>
+
+            {/* Department Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Year-Wise Performance */}
+              <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20">
+                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-500 mb-6">
+                  <BarChart2 size={16} /> Average CGPA By Year
+                </h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={yearWiseData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis dataKey="name" tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 10]} tick={{fontSize: 10, fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="avgGPA" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={40} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* CGPA Distribution */}
+              <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20">
+                <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-500 mb-6">
+                  <PieIcon size={16} /> Department CGPA Distribution
+                </h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={cgpaDistributionData}
+                        cx="50%" cy="50%"
+                        innerRadius={60} outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {cgpaDistributionData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                      <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* 🧾 TAB 2: STUDENT DIRECTORY (Your existing list code) */}
+        {activeTab === "list" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            
+            {/* Controls: Search & Filters */}
+            <div className="p-2 rounded-2xl neu-raised bg-slate-50/50 dark:bg-slate-900/20 border border-white/20 flex flex-col md:flex-row items-center gap-4">
+              <div className="flex-1 w-full relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors">
+                    <Search size={18} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search by Name or Roll No..."
+                  className="w-full pl-12 pr-4 py-3 rounded-xl neu-inset bg-transparent outline-none text-sm font-bold text-slate-700 dark:text-white placeholder-slate-400/70"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <div className="flex gap-3 w-full md:w-auto">
+                <div className="relative">
+                  <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <select
+                    className="pl-9 pr-8 py-3 rounded-xl neu-inset bg-transparent outline-none text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-500 transition-colors appearance-none"
+                    value={yearFilter}
+                    onChange={(e) => setYearFilter(e.target.value)}
                   >
-                    <td className="p-5 font-bold text-indigo-500 group-hover:text-indigo-600 transition-colors">{stu.rollNumber}</td>
-                    <td className="p-5 font-bold text-slate-800 dark:text-white">{stu.name}</td>
-                    <td className="p-5">{stu.year}</td>
-                    <td className="p-5">
-                        <span className="px-2 py-1 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500">{stu.section}</span>
-                    </td>
-                    <td className="p-5 text-center">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
-                          parseFloat(stu.attendance) >= 75 
-                            ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
-                            : "bg-rose-100 text-rose-700 border border-rose-200"
-                        }`}>
-                          {stu.attendance}%
-                        </span>
-                    </td>
-                    <td className="p-5 text-center font-bold text-slate-700 dark:text-slate-200">
-                        {parseFloat(stu.gpa) > 10 ? (parseFloat(stu.gpa)/10).toFixed(2) : stu.gpa}
-                    </td>
-                    <td className="p-5 text-xs text-slate-500">{stu.proctor}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    <option value="">All Years</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                  </select>
+                </div>
+
+                <div className="relative">
+                  <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <select
+                    className="pl-9 pr-8 py-3 rounded-xl neu-inset bg-transparent outline-none text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-indigo-500 transition-colors appearance-none"
+                    value={sectionFilter}
+                    onChange={(e) => setSectionFilter(e.target.value)}
+                  >
+                    <option value="">All Sections</option>
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                    <option value="C">Section C</option>
+                    <option value="D">Section D</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Students Table */}
+            <div className="rounded-[1.5rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <th className="p-5">Roll No</th>
+                      <th className="p-5">Name</th>
+                      <th className="p-5">Year</th>
+                      <th className="p-5">Section</th>
+                      <th className="p-5 text-center">Attendance</th>
+                      <th className="p-5 text-center">GPA</th>
+                      <th className="p-5">Proctor</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm font-medium text-slate-600 dark:text-slate-300 divide-y divide-slate-50 dark:divide-slate-800/50">
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" className="p-10 text-center text-slate-400 italic">No student records match your filters.</td>
+                      </tr>
+                    ) : (
+                      filtered.map((stu, i) => (
+                        <tr
+                          key={i}
+                          onClick={() => handleRowClick(stu)}
+                          className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                        >
+                          <td className="p-5 font-bold text-indigo-500 group-hover:text-indigo-600 transition-colors">{stu.rollNumber}</td>
+                          <td className="p-5 font-bold text-slate-800 dark:text-white">{stu.name}</td>
+                          <td className="p-5">{stu.year}</td>
+                          <td className="p-5">
+                              <span className="px-2 py-1 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500">{stu.section}</span>
+                          </td>
+                          <td className="p-5 text-center">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                                parseFloat(stu.attendance) >= 75 
+                                  ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
+                                  : "bg-rose-100 text-rose-700 border border-rose-200"
+                              }`}>
+                                {stu.attendance}%
+                              </span>
+                          </td>
+                          <td className="p-5 text-center font-bold text-slate-700 dark:text-slate-200">
+                              {parseFloat(stu.gpa) > 10 ? (parseFloat(stu.gpa)/10).toFixed(2) : stu.gpa}
+                          </td>
+                          <td className="p-5 text-xs text-slate-500">{stu.proctor}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
       </div>
 
       {/* 🪟 Detailed Modal */}
@@ -227,7 +355,22 @@ const HODStudents = () => {
 };
 
 // --------------------------------------------------------------------------
-// 🔹 UPDATED: Student Detail Modal (Restored Info + New Graphs)
+// 🔹 Summary Card Component
+// --------------------------------------------------------------------------
+const SummaryCard = ({ title, value, icon, color }) => (
+  <div className="p-6 rounded-[1.5rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 flex items-center justify-between group hover:-translate-y-1 transition-transform">
+    <div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{title}</p>
+      <p className={`text-4xl font-black ${color} tracking-tighter`}>{value}</p>
+    </div>
+    <div className={`p-4 rounded-2xl neu-inset bg-slate-50 dark:bg-slate-900/50 ${color}`}>
+      {icon}
+    </div>
+  </div>
+);
+
+// --------------------------------------------------------------------------
+// 🔹 Student Detail Modal (Graph + Cards + Personal Details)
 // --------------------------------------------------------------------------
 const StudentDetailModal = ({ studentId, onClose }) => {
   const [details, setDetails] = useState(null);
@@ -260,7 +403,7 @@ const StudentDetailModal = ({ studentId, onClose }) => {
     return avg.toFixed(2);
   };
 
-  // 🔹 SEMESTER DATA (Graph & Cards) 
+  // 🔹 SEMESTER DATA (Graph & Cards)
   const semesterData = useMemo(() => {
     if (!details?.academic_scores) return [];
     
@@ -327,7 +470,7 @@ const StudentDetailModal = ({ studentId, onClose }) => {
               </div>
             </div>
 
-            {/* 2. Personal Details (RESTORED) */}
+            {/* 2. Personal Details */}
             <section>
                <div className="flex items-center gap-2 mb-4 text-indigo-500"><User size={18} /><h4 className="text-sm font-black uppercase tracking-widest">Personal Details</h4></div>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -343,7 +486,7 @@ const StudentDetailModal = ({ studentId, onClose }) => {
 
             <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
-            {/* 3. Guardian Info (RESTORED) */}
+            {/* 3. Guardian Info */}
             <section>
                <div className="flex items-center gap-2 mb-4 text-amber-500"><Users size={18} /><h4 className="text-sm font-black uppercase tracking-widest">Guardian Info</h4></div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -362,7 +505,7 @@ const StudentDetailModal = ({ studentId, onClose }) => {
 
             <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
-            {/* 4. Academic Performance (UPDATED with Graphs) */}
+            {/* 4. Academic Performance */}
             <section>
                 <div className="flex items-center gap-2 mb-4 text-emerald-500">
                    <Activity size={18} />
@@ -402,7 +545,7 @@ const StudentDetailModal = ({ studentId, onClose }) => {
 
             <div className="h-px bg-slate-100 dark:bg-slate-800" />
 
-            {/* 5. Extracurriculars (RESTORED) */}
+            {/* 5. Extracurriculars */}
             <section>
                <div className="flex items-center gap-2 mb-4 text-purple-500"><Award size={18} /><h4 className="text-sm font-black uppercase tracking-widest">Extracurriculars</h4></div>
                {details.extracurriculars?.length ? (
@@ -420,7 +563,7 @@ const StudentDetailModal = ({ studentId, onClose }) => {
                ) : <p className="text-slate-400 italic text-sm">No activities recorded.</p>}
             </section>
 
-            {/* 6. Proctor Info (RESTORED) */}
+            {/* 6. Proctor Info */}
             <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl flex items-center justify-between border border-indigo-100 dark:border-indigo-800">
                 <span className="text-xs font-black uppercase tracking-widest text-indigo-400">Assigned Proctor</span>
                 <span className="font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><User size={14} /> {details.proctor}</span>
