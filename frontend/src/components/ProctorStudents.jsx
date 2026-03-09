@@ -5,10 +5,11 @@ import axios from "axios";
 import { 
   Users, GraduationCap, TrendingUp, LayoutList,
   X, Phone, Mail, MapPin, User, BookOpen, Save, AlertTriangle,
-  PieChart as PieIcon, BarChart2, Activity, Edit3, ChevronRight
+  PieChart as PieIcon, BarChart2, Activity, Edit3, 
+  AlertCircle, PhoneCall, CheckCircle2, FileText, Plus
 } from "lucide-react";
 
-// 2. CHARTS LIBRARY (Added LineChart for Student Detail View)
+// 2. CHARTS LIBRARY
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid
@@ -16,9 +17,15 @@ import {
 
 const ProctorStudents = () => {
   const [students, setStudents] = useState([]);
+  const [tasks, setTasks] = useState([]); // ✅ State for live tasks
   const [loading, setLoading] = useState(true);
   const [selectedStudentId, setSelectedStudentId] = useState(null); 
   const [activeTab, setActiveTab] = useState("summary");
+  const [showingPhoneFor, setShowingPhoneFor] = useState(null); 
+
+  // ✅ States for adding a new task
+  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
 
   useEffect(() => {
     fetchStudents();
@@ -30,12 +37,55 @@ const ProctorStudents = () => {
       const res = await axios.get("http://localhost:5000/api/proctor/students", {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setStudents(Array.isArray(res.data) ? res.data : []);
+      setStudents(res.data.students || []);
+      setTasks(res.data.tasks || []); // Load tasks from backend
     } catch (err) {
-      console.error("Error loading students", err);
+      console.error("Error loading dashboard data", err);
       setStudents([]); 
+      setTasks([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ✅ Handler: Add a new task
+  const handleAddTask = async (e) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post("http://localhost:5000/api/proctor/tasks", {
+        title: newTaskTitle
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Add new task to the top of the list
+      setTasks([res.data, ...tasks]);
+      setNewTaskTitle("");
+      setIsAddingTask(false);
+    } catch (err) {
+      console.error("Failed to add task:", err);
+    }
+  };
+
+  // ✅ Handler: Toggle task completion
+  const handleToggleTask = async (taskId, currentStatus) => {
+    try {
+      // Optimistically update UI
+      setTasks(tasks.map(t => t.task_id === taskId ? { ...t, is_completed: !currentStatus } : t));
+
+      const token = localStorage.getItem("token");
+      await axios.patch(`http://localhost:5000/api/proctor/tasks/${taskId}`, {
+        is_completed: !currentStatus
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (err) {
+      console.error("Failed to toggle task:", err);
+      // Revert if failed
+      setTasks(tasks.map(t => t.task_id === taskId ? { ...t, is_completed: currentStatus } : t));
     }
   };
 
@@ -63,6 +113,45 @@ const ProctorStudents = () => {
       avgCGPA: count ? (totalCGPA / count).toFixed(2) : "0.00",
       avgSGPA: count ? (totalCGPA / count).toFixed(2) : "0.00" 
     };
+  }, [students]);
+
+  // 🚨 NEEDS ATTENTION ROSTER
+  const atRiskStudents = useMemo(() => {
+    return students.filter(s => {
+       let lowAttendance = false;
+       if (s.student_attendances?.length > 0) {
+          const latestAtt = [...s.student_attendances].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+          if (parseFloat(latestAtt.attendance_percentage) < 75) lowAttendance = true;
+       }
+
+       let lowGpa = false;
+       let hasBacklogs = false;
+       let backlogCount = 0;
+
+       const scores = s.student_academic_scores || [];
+       if (scores.length > 0) {
+           const total = scores.reduce((sum, sc) => sum + (parseFloat(sc.grade_points || sc.total_marks) || 0), 0);
+           let gpa = total / scores.length;
+           if (gpa > 10) gpa = gpa / 10;
+           if (gpa < 6.0) lowGpa = true;
+
+           scores.forEach(sc => {
+               let scoreVal = parseFloat(sc.grade_points || sc.total_marks) || 0;
+               if (scoreVal > 10) scoreVal = scoreVal / 10; 
+               if (scoreVal < 5.0) {
+                   hasBacklogs = true;
+                   backlogCount++;
+               }
+           });
+       }
+
+       s.riskReasons = [];
+       if (lowAttendance) s.riskReasons.push("Low Attendance");
+       if (lowGpa) s.riskReasons.push("Low GPA");
+       if (hasBacklogs) s.riskReasons.push(`${backlogCount} Backlog${backlogCount > 1 ? 's' : ''}`);
+
+       return lowAttendance || lowGpa || hasBacklogs;
+    });
   }, [students]);
 
   // 📈 DASHBOARD CHARTS DATA
@@ -145,12 +234,122 @@ const ProctorStudents = () => {
       {/* CONTENT AREA */}
       <div className="min-h-[400px]">
         
-        {/* TAB 1: SUMMARY */}
+        {/* 🚀 TAB 1: SUMMARY */}
         {activeTab === "summary" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
-            <SummaryCard title="Total Students" value={stats.total} icon={<Users size={24} />} color="text-indigo-500" />
-            <SummaryCard title="Class Avg SGPA" value={stats.avgSGPA} icon={<Activity size={24} />} color="text-emerald-500" />
-            <SummaryCard title="Class Avg CGPA" value={stats.avgCGPA} icon={<GraduationCap size={24} />} color="text-amber-500" />
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+              
+              {/* KPI Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <SummaryCard title="Total Students" value={stats.total} icon={<Users size={24} />} color="text-indigo-500" />
+                <SummaryCard title="Class Avg SGPA" value={stats.avgSGPA} icon={<Activity size={24} />} color="text-emerald-500" />
+                <SummaryCard title="Class Avg CGPA" value={stats.avgCGPA} icon={<GraduationCap size={24} />} color="text-amber-500" />
+              </div>
+
+              {/* Action Center */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                 
+                 {/* 📌 Left Column: Mentoring Tasks & Notes (Live) */}
+                 <div className="lg:col-span-3 p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20 flex flex-col">
+                    <div className="flex items-center justify-between mb-6">
+                       <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-indigo-500">
+                          <FileText size={16} /> Mentoring Tasks
+                       </h3>
+                       <button 
+                          onClick={() => setIsAddingTask(!isAddingTask)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg hover:bg-indigo-100 transition-colors uppercase tracking-wider"
+                       >
+                          {isAddingTask ? <X size={12}/> : <Plus size={12}/>} 
+                          {isAddingTask ? 'Cancel' : 'New Task'}
+                       </button>
+                    </div>
+
+                    {/* Add Task Form */}
+                    {isAddingTask && (
+                      <form onSubmit={handleAddTask} className="mb-4 p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 flex gap-2 animate-in fade-in slide-in-from-top-2">
+                        <input 
+                          type="text" 
+                          autoFocus
+                          placeholder="e.g. Call Rahul's father regarding attendance..." 
+                          className="flex-1 bg-transparent border-none outline-none text-sm text-slate-700 placeholder-indigo-300"
+                          value={newTaskTitle}
+                          onChange={(e) => setNewTaskTitle(e.target.value)}
+                        />
+                        <button type="submit" className="p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors">
+                           <Save size={14} />
+                        </button>
+                      </form>
+                    )}
+
+                    {/* Live Task List */}
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                       {tasks.length === 0 ? (
+                          <div className="p-8 text-center text-slate-400 italic text-sm">No pending tasks. You're all caught up!</div>
+                       ) : (
+                          tasks.map(task => (
+                             <div key={task.task_id} className={`p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex gap-3 items-start transition-opacity ${task.is_completed ? 'opacity-50' : ''}`}>
+                                <input 
+                                   type="checkbox" 
+                                   checked={task.is_completed}
+                                   onChange={() => handleToggleTask(task.task_id, task.is_completed)}
+                                   className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" 
+                                />
+                                <div>
+                                   <p className={`font-bold text-sm ${task.is_completed ? 'text-slate-500 line-through dark:text-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                      {task.title}
+                                   </p>
+                                   <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+                                      {task.is_completed ? 'Completed' : 'Task'} • {new Date(task.createdAt).toLocaleDateString()}
+                                   </p>
+                                </div>
+                             </div>
+                          ))
+                       )}
+                    </div>
+                 </div>
+
+                 {/* 🚨 Right Column: Needs Attention */}
+                 <div className="lg:col-span-2 p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20">
+                    <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-rose-500 mb-6">
+                       <AlertCircle size={16} /> Needs Attention
+                    </h3>
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                       {atRiskStudents.length === 0 ? (
+                           <div className="p-8 text-center text-slate-400 italic text-sm">🎉 All students are performing well.</div>
+                       ) : (
+                          atRiskStudents.map(s => (
+                             <div key={s.student_id} className="flex justify-between items-center p-3 rounded-xl bg-white dark:bg-slate-800 border border-rose-100 shadow-sm hover:border-rose-300 transition-colors">
+                                <div>
+                                   <p className="font-bold text-sm text-slate-700 dark:text-slate-200">{s.full_name}</p>
+                                   <div className="flex gap-1 mt-1 flex-wrap">
+                                      {s.riskReasons.map((reason, i) => (
+                                         <span key={i} className="px-1.5 py-0.5 bg-rose-50 text-rose-600 text-[9px] font-black uppercase rounded">{reason}</span>
+                                      ))}
+                                   </div>
+                                </div>
+                                <button 
+                                   onClick={(e) => {
+                                      e.stopPropagation();
+                                      setShowingPhoneFor(showingPhoneFor === s.student_id ? null : s.student_id);
+                                   }}
+                                   className={`flex items-center justify-center p-2 text-slate-400 hover:text-indigo-500 bg-slate-50 hover:bg-indigo-50 rounded-lg transition-all duration-300 ${showingPhoneFor === s.student_id ? 'px-3 w-32' : 'w-8'}`}
+                                   title="Show Contact"
+                                >
+                                   {showingPhoneFor === s.student_id ? (
+                                      <span className="text-xs font-bold text-indigo-600 truncate">
+                                         {s.student_personal_info?.phone_number || s.student_personal_info?.father_phone || "No Number"}
+                                      </span>
+                                   ) : (
+                                      <PhoneCall size={14} />
+                                   )}
+                                </button>
+                             </div>
+                          ))
+                       )}
+                    </div>
+                 </div>
+
+              </div>
           </div>
         )}
 
@@ -210,13 +409,7 @@ const ProctorStudents = () => {
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie
-                      data={chartData.cgpaPie}
-                      cx="50%" cy="50%"
-                      innerRadius={60} outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
+                    <Pie data={chartData.cgpaPie} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                       {chartData.cgpaPie.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
@@ -243,53 +436,11 @@ const ProctorStudents = () => {
                 </ResponsiveContainer>
               </div>
             </div>
-
-            <div className="lg:col-span-2 p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20">
-               <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-rose-500 mb-4">
-                <AlertTriangle size={16} /> Action Required: Low Performing Students (SGPA &lt; 6.0)
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {students.filter(s => {
-                     const scores = s.student_academic_scores || [];
-                     if (!scores.length) return false;
-                     const maxSem = Math.max(...scores.map(sc => sc.semester || 0));
-                     const latestScores = scores.filter(sc => sc.semester === maxSem);
-                     const total = latestScores.reduce((sum, sc) => sum + (parseFloat(sc.grade_points || sc.total_marks) || 0), 0);
-                     let sgpa = latestScores.length ? (total / latestScores.length) : 0;
-                     if (sgpa > 10) sgpa = sgpa / 10;
-                     return sgpa < 6.0;
-                  }).slice(0, 6).map(s => (
-                    <div key={s.student_id} className="flex justify-between items-center p-3 rounded-xl bg-rose-50 dark:bg-rose-900/10 border border-rose-100">
-                       <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-rose-200 text-rose-600 flex items-center justify-center font-bold text-xs">
-                            {s.full_name[0]}
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-slate-700 dark:text-slate-200">{s.full_name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase">{s.roll_number}</p>
-                          </div>
-                       </div>
-                       <span className="text-xs font-black text-rose-500 bg-white px-2 py-1 rounded">Needs Attention</span>
-                    </div>
-                  ))}
-                  {students.every(s => {
-                     const scores = s.student_academic_scores || [];
-                     if (!scores.length) return true;
-                     const maxSem = Math.max(...scores.map(sc => sc.semester || 0));
-                     const latestScores = scores.filter(sc => sc.semester === maxSem);
-                     const total = latestScores.reduce((sum, sc) => sum + (parseFloat(sc.grade_points || sc.total_marks) || 0), 0);
-                     let sgpa = latestScores.length ? (total / latestScores.length) : 0;
-                     if (sgpa > 10) sgpa = sgpa / 10;
-                     return sgpa >= 6.0;
-                  }) && (
-                     <p className="text-slate-400 italic text-sm p-4 col-span-2 text-center">🎉 No students currently flagged for low performance.</p>
-                  )}
-              </div>
-            </div>
           </div>
         )}
       </div>
 
+      {/* MODAL */}
       {selectedStudentId && (
         <StudentEditModal 
           studentId={selectedStudentId} 
@@ -297,12 +448,13 @@ const ProctorStudents = () => {
           refreshList={fetchStudents}
         />
       )}
+
     </div>
   );
 };
 
 // --------------------------------------------------------------------------
-// 🔹 REDESIGNED STUDENT MODAL: Trends + Semester Summary
+// 🔹 STUDENT EDIT MODAL
 // --------------------------------------------------------------------------
 const StudentEditModal = ({ studentId, onClose, refreshList }) => {
   const [details, setDetails] = useState(null);
@@ -366,7 +518,6 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
     }
   };
 
-  // 🔹 RECALCULATE CGPA (Auto-Fix for Marks vs GPA)
   const calculateCGPA = () => {
     if (!details?.academic_scores?.length) return "N/A";
     const total = details.academic_scores.reduce((sum, s) => sum + (parseFloat(s.grade_points || s.marks) || 0), 0);
@@ -375,10 +526,8 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
     return avg.toFixed(2);
   };
 
-  // 🔹 PROCESS SEMESTER DATA (Grouping by Sem)
   const semesterData = useMemo(() => {
     if (!details?.academic_scores) return [];
-    
     const groups = {};
     details.academic_scores.forEach(score => {
       const sem = score.semester || "Unknown";
@@ -391,19 +540,15 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
       const total = subjects.reduce((sum, s) => sum + (parseFloat(s.grade_points || s.marks) || 0), 0);
       let sgpa = total / subjects.length;
       if (sgpa > 10) sgpa = sgpa / 10;
-      
-      // Assume < 5 grade points is a "Fail" or backlog
       const backlogs = subjects.filter(s => (parseFloat(s.grade_points || s.marks) || 0) < 5).length;
-
       return { sem: `Sem ${sem}`, sgpa: parseFloat(sgpa.toFixed(2)), backlogs };
-    }).sort((a,b) => a.sem.localeCompare(b.sem)); // Sort Sem 1, Sem 2...
+    }).sort((a,b) => a.sem.localeCompare(b.sem)); 
   }, [details]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-2xl h-full bg-white dark:bg-slate-900 shadow-2xl p-8 overflow-y-auto animate-in slide-in-from-right duration-300 border-l border-slate-100 dark:border-slate-800">
         
-        {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
             <h2 className="text-2xl font-black text-slate-800 dark:text-white">Student Profile</h2>
@@ -427,7 +572,6 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
         {loading ? <div className="flex justify-center items-center h-64 text-slate-400 font-bold italic">Loading...</div> : !details ? <div className="text-red-500">Error.</div> : (
           <div className="space-y-8">
             
-            {/* Identity & Key Metrics */}
             <div className="p-6 rounded-[1.5rem] neu-raised bg-slate-50 dark:bg-slate-800/50 flex flex-col md:flex-row gap-6">
                <div className="h-20 w-20 rounded-2xl bg-indigo-500 flex items-center justify-center text-white text-3xl font-black shadow-lg shadow-indigo-500/30">
                 {details.full_name?.charAt(0)}
@@ -448,7 +592,6 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
               </div>
             </div>
 
-            {/* NEW: Academic Performance Graph */}
             <div>
                <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white mb-4"><Activity size={16} /> Performance Trend</h4>
                <div className="h-48 w-full p-4 rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -464,7 +607,6 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
                </div>
             </div>
 
-            {/* NEW: Semester Cards Grid */}
             <div>
               <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white mb-4"><BookOpen size={16} /> Semester History</h4>
               <div className="grid grid-cols-2 gap-4">
@@ -484,7 +626,6 @@ const StudentEditModal = ({ studentId, onClose, refreshList }) => {
               </div>
             </div>
 
-            {/* Personal Info */}
             <div>
               <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-800 dark:text-white mb-4"><User size={16} /> Personal Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

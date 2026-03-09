@@ -10,16 +10,13 @@ import visitLogsRoutes from './routes/visit_logs.routes.js';
 import hodStudentsRoutes from "./routes/hodStudents.routes.js";
 import hodSettingsRoutes from "./routes/hodSettings.routes.js";
 import proctorRoutes from "./routes/proctor.routes.js";
+import botRoutes from "./routes/bot.routes.js";
 
 dotenv.config();
 
 const app = express();
 
-app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true
-}));
+app.use(cors({ origin: "*" }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -31,7 +28,11 @@ app.use((req, res, next) => {
 });
 
 
-authRoutes(app);  
+authRoutes(app);
+
+// Register the hardware bot API
+app.use("/api/bot", botRoutes);
+
 app.use('/api/todo', todoRoutes);
 app.use('/api/visit_logs', visitLogsRoutes);
 

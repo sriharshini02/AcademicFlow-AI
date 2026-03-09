@@ -1,15 +1,13 @@
 import express from "express";
 import { verifyToken } from "../middleware/authJwt.js";
-
-// ✅ IMPORT EVERYTHING FROM ONE FILE
 import { 
-  getProctorProfile, 
-  updateProctorProfile, 
+  getProctorProfile,
+  updateProctorProfile,
   getProctorStudents,
   getStudentDetails,
-  addStudent,     // Now exists here
-  updateStudent   // Now exists here
-} from "../controllers/proctor.controller.js"; 
+  addStudent,
+  updateStudent,  addTask, toggleTask
+} from "../controllers/proctor.controller.js";
 
 // ❌ REMOVE THE IMPORT FROM 'proctorStudent.controller.js'
 // (We deleted that line to fix your SyntaxError)
@@ -25,5 +23,6 @@ router.get("/students", verifyToken, getProctorStudents);
 router.post("/addstudent", verifyToken, addStudent);
 router.put("/students/:id", verifyToken, updateStudent);
 router.get("/students/:id", verifyToken, getStudentDetails);
-
+router.post("/tasks", verifyToken, addTask);
+router.patch("/tasks/:taskId", verifyToken, toggleTask);
 export default router;

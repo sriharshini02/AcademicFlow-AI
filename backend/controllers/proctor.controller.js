@@ -1,13 +1,13 @@
 import db from "../models/index.js";
 import bcrypt from "bcryptjs";
 
-const { 
-  User, 
-  StudentCore, 
-  StudentPersonalInfo, 
-  StudentAttendance, 
+const {
+  User,
+  StudentCore,
+  StudentPersonalInfo,
+  StudentAttendance,
   StudentAcademicScore,
-  StudentExtracurricular 
+  StudentExtracurricular
 } = db;
 
 // =========================================================
@@ -16,7 +16,7 @@ const {
 
 export const getProctorProfile = async (req, res) => {
   try {
-    const proctorId = req.userId; 
+    const proctorId = req.userId;
     const proctor = await User.findByPk(proctorId, {
       attributes: ['user_id', 'name', 'email', 'role', 'created_at'], 
       include: [{ model: StudentCore }] 
@@ -51,21 +51,77 @@ export const updateProctorProfile = async (req, res) => {
 // 2. STUDENT MANAGEMENT (List, Add, Update)
 // =========================================================
 
-// ✅ GET All Students
+// ✅ GET All Students + Proctor Tasks
 export const getProctorStudents = async (req, res) => {
   try {
-    const students = await StudentCore.findAll({
-      where: { assigned_proctor_id: req.userId },
+    const proctorId = req.userId;
+
+    // 1. Fetch Students
+    const students = await db.StudentCore.findAll({
+      where: { assigned_proctor_id: proctorId },
       include: [
-        { model: StudentPersonalInfo }, 
-        { model: StudentAttendance }, 
-        { model: StudentAcademicScore }
+        { model: db.StudentPersonalInfo }, 
+        { model: db.StudentAttendance }, 
+        { model: db.StudentAcademicScore }
       ],
       order: [['roll_number', 'ASC']]
     });
-    res.json(students);
+
+    // 2. Fetch Tasks for this Proctor
+    const tasks = await db.ToDoTask.findAll({
+      where: { user_id: proctorId },
+      order: [
+        ['is_completed', 'ASC'], // Pending tasks first
+        ['createdAt', 'DESC']    // Newest first
+      ]
+    });
+
+    res.json({ students, tasks });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch students" });
+    console.error("Error fetching proctor dashboard data:", error);
+    res.status(500).json({ error: "Failed to fetch dashboard data" });
+  }
+};
+
+// ✅ ADD a New Task
+export const addTask = async (req, res) => {
+  try {
+    const { title, due_date, priority } = req.body;
+    
+    const newTask = await db.ToDoTask.create({
+      user_id: req.userId,
+      title,
+      due_date: due_date || null,
+      priority: priority || 'medium',
+      is_completed: false
+    });
+
+    res.status(201).json(newTask);
+  } catch (error) {
+    console.error("Error adding task:", error);
+    res.status(500).json({ error: "Failed to add task" });
+  }
+};
+
+// ✅ TOGGLE Task Completion
+export const toggleTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+    const { is_completed } = req.body;
+
+    const task = await db.ToDoTask.findOne({
+      where: { task_id: taskId, user_id: req.userId }
+    });
+
+    if (!task) return res.status(404).json({ error: "Task not found" });
+
+    task.is_completed = is_completed;
+    await task.save();
+
+    res.json(task);
+  } catch (error) {
+    console.error("Error toggling task:", error);
+    res.status(500).json({ error: "Failed to update task" });
   }
 };
 
