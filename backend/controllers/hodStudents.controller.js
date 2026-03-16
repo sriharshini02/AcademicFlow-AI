@@ -7,7 +7,8 @@ const {
   StudentAcademicScore,
   User,
   StudentPersonalInfo,
-  StudentExtracurricular
+  StudentExtracurricular,
+  StudentSemesterSummary
 } = db;
 
 export const getHODStudents = async (req, res) => {
@@ -223,6 +224,7 @@ export const getHODStudentDetails = async (req, res) => {
         { model: StudentAcademicScore, required: false },
         { model: StudentAttendance, required: false },
         { model: StudentExtracurricular, required: false },
+        { model: StudentSemesterSummary, required: false }, // ✅ ADDED THIS LINE
         { model: User, as: 'proctor', attributes: ['name'], required: false }
       ]
     });
@@ -231,10 +233,10 @@ export const getHODStudentDetails = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // ✅ FIX 1: Compute GPA using grade_points
+    // Compute GPA fallback using grade_points (if no summary exists)
     const scores = student.student_academic_scores || [];
     const totalPoints = scores.reduce((sum, s) => sum + parseFloat(s.grade_points || 0), 0);
-    const gpa = scores.length ? (totalPoints / scores.length).toFixed(2) : "N/A";
+    const gpaFallback = scores.length ? (totalPoints / scores.length).toFixed(2) : "N/A";
 
     const latestAttendance = (student.student_attendances || [])
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
@@ -257,15 +259,16 @@ export const getHODStudentDetails = async (req, res) => {
       father_phone: personal.father_phone || "N/A",
       mother_phone: personal.mother_phone || "N/A",
       
-      gpa,
-      // total_marks REMOVED -> You can replace with 'total_credits' if needed
+      gpa: gpaFallback,
       attendance_percentage: latestAttendance?.attendance_percentage || "N/A",
       proctor: student.proctor?.name || "N/A",
+      
+      // ✅ ADDED THIS: Now the frontend graph gets the real semester data!
+      student_semester_summaries: student.student_semester_summaries || [], 
       
       academic_scores: scores.map((s) => ({
         semester: s.semester,
         subject_name: s.subject_name,
-        // ✅ FIX 2: Send grade_points instead of total_marks
         grade_points: s.grade_points, 
         subject_code: s.subject_code
       })),

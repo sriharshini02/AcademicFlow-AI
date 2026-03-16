@@ -395,7 +395,18 @@ const StudentDetailModal = ({ studentId, onClose }) => {
   }, [studentId]);
 
   // 🔹 RECALCULATE CGPA (Auto-Fix)
+  // 🔹 RECALCULATE CGPA (Auto-Fix)
   const calculateCGPA = () => {
+    // ✅ 1. Look for the NEW Excel data first!
+    if (details?.student_semester_summaries?.length > 0) {
+      // Sort to get the latest semester at the top
+      const sorted = [...details.student_semester_summaries].sort((a, b) => b.semester - a.semester);
+      // Find the most recent semester that actually has a CGPA (skips NULLs)
+      const latest = sorted.find(s => s.cgpa);
+      if (latest) return parseFloat(latest.cgpa).toFixed(2);
+    }
+
+    // 2. Old Fallback
     if (!details?.academic_scores?.length) return "N/A";
     const total = details.academic_scores.reduce((sum, s) => sum + (parseFloat(s.grade_points || s.total_marks || s.marks) || 0), 0);
     let avg = total / details.academic_scores.length;
@@ -405,6 +416,19 @@ const StudentDetailModal = ({ studentId, onClose }) => {
 
   // 🔹 SEMESTER DATA (Graph & Cards)
   const semesterData = useMemo(() => {
+    // ✅ 1. Plot the Graph using the NEW Excel data!
+    if (details?.student_semester_summaries?.length > 0) {
+      return details.student_semester_summaries
+        .filter(s => s.sgpa) // Only include semesters where they have an SGPA
+        .sort((a, b) => a.semester - b.semester) // Sort sequentially (Sem 1, Sem 2...)
+        .map(s => ({
+          sem: `Sem ${s.semester}`,
+          sgpa: parseFloat(s.sgpa),
+          backlogs: 0 // Default to 0, since backlogs aren't in the summary sheet
+        }));
+    }
+
+    // 2. Old Fallback
     if (!details?.academic_scores) return [];
     
     const groups = {};

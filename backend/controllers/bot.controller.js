@@ -22,7 +22,7 @@ export const createVisitLog = async (req, res) => {
     // If role is 'faculty', parsedStudentId safely remains null!
 
     // 3. Check HOD Availability (Assuming HOD ID 1)
-    const hodStatus = await db.HODAvailability.findOne({ where: { hod_id: 1 } });
+    const hodStatus = await db.HODAvailability.findOne({ where: { hod_id: 2 } });
     const isAvailable = hodStatus ? hodStatus.is_available : false;
     const estTime = hodStatus ? hodStatus.estimated_return_time : null;
     const statusMsg = hodStatus ? hodStatus.status_message : "Currently unavailable";
@@ -53,5 +53,30 @@ export const createVisitLog = async (req, res) => {
   } catch (error) {
     console.error("❌ Error processing kiosk visit:", error);
     return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Fetch public HOD status for the Kiosk (No Token Required)
+export const getKioskHODStatus = async (req, res) => {
+  try {
+    // Assuming this kiosk sits outside HOD #1's office
+    const availability = await db.HODAvailability.findOne({ where: { hod_id: 2 } });
+    
+    if (!availability) {
+      return res.json({ 
+        is_available: false, 
+        status_message: "Status unavailable", 
+        estimated_return_time: null 
+      });
+    }
+
+    // Send exactly the fields the kiosk needs
+    res.json({
+      is_available: availability.is_available,
+      status_message: availability.status_message,
+      estimated_return_time: availability.estimated_return_time
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching availability" });
   }
 };
