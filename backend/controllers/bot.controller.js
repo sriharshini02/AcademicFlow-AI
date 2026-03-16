@@ -1,47 +1,57 @@
 import db from "../models/index.js";
 
 export const createVisitLog = async (req, res) => {
-    try {
-    const { 
-    visitor_name, 
-    visitor_role, 
-    related_student_id, 
-    purpose, 
-      scheduled_time // Send this if it's a future appointment, leave blank for live check-ins
-    } = req.body;
+  try {
+    const { role, name, contact, student_id, purpose } = req.body;
 
-    // 1. Validate required fields
-    if (!visitor_name || !visitor_role || !purpose) {
-    return res.status(400).json({ 
-        error: "visitor_name, visitor_role, and purpose are required fields." 
-    });
+    // 1. Validate required base fields (Everyone must provide these)
+    if (!role || !name || !contact || !purpose) {
+      return res.status(400).json({ error: "Role, Name, Contact, and Purpose are required." });
     }
 
-    // 2. Insert data into visit_logs_history table
+    // 2. Role-specific validation for Student ID
+    let parsedStudentId = null;
+    const normalizedRole = role.toLowerCase();
+
+    if (normalizedRole === 'parent' || normalizedRole === 'student') {
+        if (!student_id) {
+            return res.status(400).json({ error: "Student ID / Roll Number is required for Parents and Students." });
+        }
+        parsedStudentId = parseInt(student_id);
+    } 
+    // If role is 'faculty', parsedStudentId safely remains null!
+
+    // 3. Check HOD Availability (Assuming HOD ID 1)
+    const hodStatus = await db.HODAvailability.findOne({ where: { hod_id: 1 } });
+    const isAvailable = hodStatus ? hodStatus.is_available : false;
+    const estTime = hodStatus ? hodStatus.estimated_return_time : null;
+    const statusMsg = hodStatus ? hodStatus.status_message : "Currently unavailable";
+
+    // 4. Create the Visit Log
     const newVisit = await db.VisitLog.create({
-    visitor_name,
-    visitor_role,
-    related_student_id: related_student_id || null,
-    purpose,
-    scheduled_time: scheduled_time || null,
-    
-      // Note: The fields below are handled automatically by your Sequelize model defaults!
-      // check_in_time: Sequelize.NOW
-      // status: 'Queued'
-      // action_taken: 'Pending'
-      // alert_sent: false
+      visitor_name: name,
+      visitor_role: role,
+      contact_number: contact,           // ✅ Saved cleanly in its own column
+      related_student_id: parsedStudentId, // ✅ Null for faculty, Integer for others
+      purpose: purpose,
+      status: 'Queued', 
+      action_taken: 'Pending',
+      alert_sent: false
     });
 
-    console.log(`🤖 Hardware Bot logged a new visit for: ${visitor_name}`);
+    console.log(`📠 Kiosk Entry: ${name} (${role}) - HOD Available: ${isAvailable}`);
 
-    // 3. Return success
+    // 5. Send response to Kiosk
     return res.status(201).json({
-    message: "Visit logged successfully",
-    visit: newVisit
+      message: "Visit logged successfully",
+      hod_available: isAvailable,
+      status_message: statusMsg,
+      estimated_return_time: estTime,
+      visit_id: newVisit.visit_id
     });
 
-    } catch (error) {
-    console.error("❌ Error inserting visit log from hardware:", error);
+  } catch (error) {
+    console.error("❌ Error processing kiosk visit:", error);
     return res.status(500).json({ error: "Internal server error" });
-    }
+  }
 };

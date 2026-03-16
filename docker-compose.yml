@@ -33,10 +33,9 @@ services:
     depends_on:
       - mysqldb
     volumes:
-      - ./backend:/usr/src/app       <-- Match the Dockerfile path!
-      - /usr/src/app/node_modules    <-- Match the Dockerfile path!
-    # 👇 Use nodemon to restart automatically when files change
-    command: npm run dev           
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     
 
   # 3. Frontend Service (Add Volumes!)
@@ -44,12 +43,11 @@ services:
     build: ./frontend
     container_name: academic_frontend
     ports:
-      - "3000:80"  
+      - "3000:80"
     depends_on:
       - backend
     environment:
-      # Windows specific fix for hot-reloading
-      - CHOKIDAR_USEPOLLING=true 
+      - CHOKIDAR_USEPOLLING=true
     # ✅ ADD THIS SECTION
     # volumes:
     #  - ./frontend:/app

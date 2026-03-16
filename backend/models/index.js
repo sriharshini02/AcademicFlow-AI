@@ -61,7 +61,8 @@ db.VisitLog = sequelize.define('visit_log', {
   check_in_time: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.NOW },
   visitor_name: { type: Sequelize.STRING(100), allowNull: false },
   visitor_role: { type: Sequelize.STRING(20), allowNull: false },
-  related_student_id: { type: Sequelize.INTEGER },
+  contact_number: { type: Sequelize.STRING(20), allowNull: false }, // ✅ NEW FIELD ADDED
+  related_student_id: { type: Sequelize.INTEGER }, // Can be null for Faculty
   purpose: { type: Sequelize.TEXT, allowNull: false },
   status: { type: Sequelize.STRING(30), allowNull: false, defaultValue: 'Queued' },
   end_time: { type: Sequelize.DATE },
