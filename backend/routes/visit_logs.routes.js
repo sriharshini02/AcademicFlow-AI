@@ -20,8 +20,6 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
-
-
 // Get queued (new) appointments
 router.get("/queued", verifyToken, async (req, res) => {
   try {
@@ -68,8 +66,6 @@ router.get('/pending', verifyToken, async (req, res) => {
   }
 });
 
-
-
 // Scheduled appointments
 router.get('/scheduled', verifyToken, async (req, res) => {
   try {
@@ -93,7 +89,6 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
 
     if (!visit) return res.status(404).json({ message: 'Appointment not found' });
 
-    // Handle undefined or null states gracefully
     const currentState = visit.action_taken || visit.status || 'Pending';
 
     const validTransitions = {
@@ -111,20 +106,14 @@ router.put('/:id/update-status', verifyToken, async (req, res) => {
       });
     }
 
-    // Handle Scheduled
     if (action_taken === 'Scheduled' && scheduled_time) {
       const localTime = new Date(scheduled_time);
-      // Adjust to IST (UTC+5:30)
       const istOffsetMs = 5.5 * 60 * 60 * 1000;
       const istDate = new Date(localTime.getTime() + istOffsetMs);
-
-      // Format for MySQL DATETIME (YYYY-MM-DD HH:mm:ss)
       const formatted = istDate.toISOString().slice(0, 19).replace('T', ' ');
       visit.scheduled_time = formatted;
     }
 
-
-    // Handle Completed
     if (action_taken === 'Completed') {
       visit.status = 'CheckedIn';
       visit.end_time = new Date();
@@ -155,6 +144,5 @@ router.get('/history', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch history' });
   }
 });
-
 
 export default router;
