@@ -4,42 +4,43 @@ export const createVisitLog = async (req, res) => {
   try {
     const { role, name, contact, student_id, purpose } = req.body;
 
-    // 1. Validate required base fields (Everyone must provide these)
+    // 1. Validate required base fields
     if (!role || !name || !contact || !purpose) {
       return res.status(400).json({ error: "Role, Name, Contact, and Purpose are required." });
     }
 
-    // 2. Role-specific validation for Student ID
-    let parsedStudentId = null;
+    let studentRoll = null;
     const normalizedRole = role.toLowerCase();
 
+    // 2. Just take the Roll Number exactly as they typed it!
     if (normalizedRole === 'parent' || normalizedRole === 'student') {
         if (!student_id) {
-            return res.status(400).json({ error: "Student ID / Roll Number is required for Parents and Students." });
+            return res.status(400).json({ error: "Student Roll Number is required for Parents and Students." });
         }
-        parsedStudentId = parseInt(student_id);
+        
+        // Clean up the string and make it uppercase, but DO NOT verify it against the DB
+        studentRoll = String(student_id).trim().toUpperCase();
     } 
-    // If role is 'faculty', parsedStudentId safely remains null!
 
-    // 3. Check HOD Availability (Assuming HOD ID 1)
+    // 3. Check HOD Availability (Assuming HOD ID 2)
     const hodStatus = await db.HODAvailability.findOne({ where: { hod_id: 2 } });
     const isAvailable = hodStatus ? hodStatus.is_available : false;
     const estTime = hodStatus ? hodStatus.estimated_return_time : null;
     const statusMsg = hodStatus ? hodStatus.status_message : "Currently unavailable";
 
-    // 4. Create the Visit Log
+    // 4. Create the Visit Log with whatever Roll Number they gave us
     const newVisit = await db.VisitLog.create({
       visitor_name: name,
       visitor_role: role,
-      contact_number: contact,           // ✅ Saved cleanly in its own column
-      related_student_id: parsedStudentId, // ✅ Null for faculty, Integer for others
+      contact_number: contact,           
+      related_student_roll: studentRoll, // ✅ Saves fake, wrong, or real IDs equally!
       purpose: purpose,
       status: 'Queued', 
       action_taken: 'Pending',
       alert_sent: false
     });
 
-    console.log(`📠 Kiosk Entry: ${name} (${role}) - HOD Available: ${isAvailable}`);
+    console.log(`📠 Kiosk Entry: ${name} (${role}) - Roll: ${studentRoll}`);
 
     // 5. Send response to Kiosk
     return res.status(201).json({
@@ -56,10 +57,8 @@ export const createVisitLog = async (req, res) => {
   }
 };
 
-// Fetch public HOD status for the Kiosk (No Token Required)
 export const getKioskHODStatus = async (req, res) => {
   try {
-    // Assuming this kiosk sits outside HOD #1's office
     const availability = await db.HODAvailability.findOne({ where: { hod_id: 2 } });
     
     if (!availability) {
@@ -70,7 +69,6 @@ export const getKioskHODStatus = async (req, res) => {
       });
     }
 
-    // Send exactly the fields the kiosk needs
     res.json({
       is_available: availability.is_available,
       status_message: availability.status_message,

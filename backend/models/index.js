@@ -62,7 +62,7 @@ db.VisitLog = sequelize.define('visit_log', {
   visitor_name: { type: Sequelize.STRING(100), allowNull: false },
   visitor_role: { type: Sequelize.STRING(20), allowNull: false },
   contact_number: { type: Sequelize.STRING(20), allowNull: false }, // ✅ NEW FIELD ADDED
-  related_student_id: { type: Sequelize.INTEGER }, // Can be null for Faculty
+  related_student_roll: { type: Sequelize.STRING(20) },
   purpose: { type: Sequelize.TEXT, allowNull: false },
   status: { type: Sequelize.STRING(30), allowNull: false, defaultValue: 'Queued' },
   end_time: { type: Sequelize.DATE },
@@ -193,8 +193,8 @@ db.User.hasOne(db.HODAvailability, { foreignKey: 'hod_id' });
 db.HODAvailability.belongsTo(db.User, { foreignKey: 'hod_id', as: 'hod' });
 
 // Student ↔ Visit Logs
-db.StudentCore.hasMany(db.VisitLog, { foreignKey: 'related_student_id' });
-db.VisitLog.belongsTo(db.StudentCore, { foreignKey: 'related_student_id', as: 'student' });
+db.StudentCore.hasMany(db.VisitLog, { foreignKey: 'related_student_roll', sourceKey: 'roll_number', constraints: false });
+db.VisitLog.belongsTo(db.StudentCore, { foreignKey: 'related_student_roll', targetKey: 'roll_number', as: 'student', constraints: false });
 
 // Tasks ↔ User
 db.User.hasMany(db.ToDoTask, { foreignKey: 'user_id' });

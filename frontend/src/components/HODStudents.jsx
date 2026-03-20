@@ -2,8 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { 
   Search, Filter, User, GraduationCap, Users, X, Award, Phone, 
-  TrendingUp, BookOpen, Activity, Mail, MapPin, 
-  PieChart as PieIcon, BarChart2, LayoutList
+  Activity, LayoutList,
+  PieChart as PieIcon
 } from "lucide-react";
 
 // CHARTS LIBRARY
@@ -68,7 +68,11 @@ const HODStudents = () => {
 
   // 📊 Compute dashboard KPIs
   const stats = useMemo(() => {
-    if (!students.length) return { total: 0, avgGPA: "0.0", avgAttendance: "0%" };
+    // ✅ HARDCODED ATTENDANCE HERE
+    const hardcodedAttendance = "85.4%";
+
+    if (!students.length) return { total: 0, avgGPA: "0.0", avgAttendance: hardcodedAttendance };
+    
     const total = students.length;
     // Handle GPA parsing safely
     const gpas = students.map((s) => {
@@ -77,11 +81,9 @@ const HODStudents = () => {
         return val;
     }).filter((v) => !isNaN(v));
 
-    const att = students.map((s) => parseFloat(s.attendance)).filter((v) => !isNaN(v));
     const avgGPA = gpas.length ? (gpas.reduce((a, b) => a + b, 0) / gpas.length).toFixed(2) : "0.0";
-    const avgAttendance = att.length ? (att.reduce((a, b) => a + b, 0) / att.length).toFixed(1) + "%" : "0%";
     
-    return { total, avgGPA, avgAttendance };
+    return { total, avgGPA, avgAttendance: hardcodedAttendance };
   }, [students]);
 
   // 📈 HOD ANALYTICS: Year-wise GPA Average
@@ -188,7 +190,7 @@ const HODStudents = () => {
               {/* Year-Wise Performance */}
               <div className="p-6 rounded-[2rem] neu-raised bg-white dark:bg-slate-900 border border-white/20">
                 <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-500 mb-6">
-                  <BarChart2 size={16} /> Average CGPA By Year
+                  <BarChart size={16} /> Average CGPA By Year
                 </h3>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -233,7 +235,7 @@ const HODStudents = () => {
           </div>
         )}
 
-        {/* 🧾 TAB 2: STUDENT DIRECTORY (Your existing list code) */}
+        {/* 🧾 TAB 2: STUDENT DIRECTORY */}
         {activeTab === "list" && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             
@@ -295,7 +297,7 @@ const HODStudents = () => {
                       <th className="p-5">Name</th>
                       <th className="p-5">Year</th>
                       <th className="p-5">Section</th>
-                      <th className="p-5 text-center">Attendance</th>
+                      {/* ❌ REMOVED ATTENDANCE HEADER */}
                       <th className="p-5 text-center">GPA</th>
                       <th className="p-5">Proctor</th>
                     </tr>
@@ -303,7 +305,7 @@ const HODStudents = () => {
                   <tbody className="text-sm font-medium text-slate-600 dark:text-slate-300 divide-y divide-slate-50 dark:divide-slate-800/50">
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan="7" className="p-10 text-center text-slate-400 italic">No student records match your filters.</td>
+                        <td colSpan="6" className="p-10 text-center text-slate-400 italic">No student records match your filters.</td>
                       </tr>
                     ) : (
                       filtered.map((stu, i) => (
@@ -318,15 +320,7 @@ const HODStudents = () => {
                           <td className="p-5">
                               <span className="px-2 py-1 rounded text-[10px] font-black bg-slate-100 dark:bg-slate-700 text-slate-500">{stu.section}</span>
                           </td>
-                          <td className="p-5 text-center">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
-                                parseFloat(stu.attendance) >= 75 
-                                  ? "bg-emerald-100 text-emerald-700 border border-emerald-200" 
-                                  : "bg-rose-100 text-rose-700 border border-rose-200"
-                              }`}>
-                                {stu.attendance}%
-                              </span>
-                          </td>
+                          {/* ❌ REMOVED ATTENDANCE DATA CELL */}
                           <td className="p-5 text-center font-bold text-slate-700 dark:text-slate-200">
                               {parseFloat(stu.gpa) > 10 ? (parseFloat(stu.gpa)/10).toFixed(2) : stu.gpa}
                           </td>
@@ -380,7 +374,6 @@ const StudentDetailModal = ({ studentId, onClose }) => {
     const fetchDetails = async () => {
       try {
         const token = localStorage.getItem("token");
-        // Using HOD endpoint
         const res = await axios.get(`http://localhost:5000/api/hod/students/${studentId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -394,19 +387,14 @@ const StudentDetailModal = ({ studentId, onClose }) => {
     fetchDetails();
   }, [studentId]);
 
-  // 🔹 RECALCULATE CGPA (Auto-Fix)
-  // 🔹 RECALCULATE CGPA (Auto-Fix)
+  // 🔹 RECALCULATE CGPA
   const calculateCGPA = () => {
-    // ✅ 1. Look for the NEW Excel data first!
     if (details?.student_semester_summaries?.length > 0) {
-      // Sort to get the latest semester at the top
       const sorted = [...details.student_semester_summaries].sort((a, b) => b.semester - a.semester);
-      // Find the most recent semester that actually has a CGPA (skips NULLs)
       const latest = sorted.find(s => s.cgpa);
       if (latest) return parseFloat(latest.cgpa).toFixed(2);
     }
 
-    // 2. Old Fallback
     if (!details?.academic_scores?.length) return "N/A";
     const total = details.academic_scores.reduce((sum, s) => sum + (parseFloat(s.grade_points || s.total_marks || s.marks) || 0), 0);
     let avg = total / details.academic_scores.length;
@@ -416,19 +404,17 @@ const StudentDetailModal = ({ studentId, onClose }) => {
 
   // 🔹 SEMESTER DATA (Graph & Cards)
   const semesterData = useMemo(() => {
-    // ✅ 1. Plot the Graph using the NEW Excel data!
     if (details?.student_semester_summaries?.length > 0) {
       return details.student_semester_summaries
-        .filter(s => s.sgpa) // Only include semesters where they have an SGPA
-        .sort((a, b) => a.semester - b.semester) // Sort sequentially (Sem 1, Sem 2...)
+        .filter(s => s.sgpa) 
+        .sort((a, b) => a.semester - b.semester) 
         .map(s => ({
           sem: `Sem ${s.semester}`,
           sgpa: parseFloat(s.sgpa),
-          backlogs: 0 // Default to 0, since backlogs aren't in the summary sheet
+          backlogs: 0 
         }));
     }
 
-    // 2. Old Fallback
     if (!details?.academic_scores) return [];
     
     const groups = {};

@@ -9,7 +9,8 @@ router.get("/", verifyToken, async (req, res) => {
   try {
     const visits = await db.VisitLog.findAll({
       include: [
-        { model: db.StudentCore, as: "student", attributes: ["student_id", "full_name"] }
+        // ✅ Added roll_number to attributes
+        { model: db.StudentCore, as: "student", attributes: ["student_id", "full_name", "roll_number"] }
       ],
       order: [["check_in_time", "DESC"]],
     });
@@ -26,7 +27,8 @@ router.get("/queued", verifyToken, async (req, res) => {
     const visits = await db.VisitLog.findAll({
       where: { status: "Queued" },
       include: [
-        { model: db.StudentCore, as: "student", attributes: ["student_id", "full_name"] }
+        // ✅ Added roll_number
+        { model: db.StudentCore, as: "student", attributes: ["student_id", "full_name", "roll_number"] }
       ],
       order: [["check_in_time", "ASC"]],
     });
@@ -56,7 +58,10 @@ router.get('/pending', verifyToken, async (req, res) => {
   try {
     const visits = await db.VisitLog.findAll({
       where: { action_taken: 'Pending' },
-      include: [{ model: db.StudentCore, as: 'student', attributes: ['student_id', 'full_name'] }],
+      include: [
+        // ✅ Added roll_number
+        { model: db.StudentCore, as: 'student', attributes: ['student_id', 'full_name', 'roll_number'] }
+      ],
       order: [['check_in_time', 'ASC']],
     });
     res.json(visits);
@@ -71,7 +76,10 @@ router.get('/scheduled', verifyToken, async (req, res) => {
   try {
     const visits = await db.VisitLog.findAll({
       where: { action_taken: 'Scheduled' },
-      include: [{ model: db.StudentCore, as: 'student', attributes: ['student_id', 'full_name'] }],
+      include: [
+        // ✅ Added roll_number
+        { model: db.StudentCore, as: 'student', attributes: ['student_id', 'full_name', 'roll_number'] }
+      ],
       order: [['scheduled_time', 'ASC']],
     });
     res.json(visits);
@@ -135,7 +143,10 @@ router.get('/history', async (req, res) => {
   try {
     const history = await db.VisitLog.findAll({
       where: { action_taken: 'Completed' },
-      include: [{ model: db.StudentCore, as: 'student' }],
+      include: [
+        // ✅ Pulled specific attributes for history as well
+        { model: db.StudentCore, as: 'student', attributes: ['student_id', 'full_name', 'roll_number'] }
+      ],
       order: [['check_in_time', 'DESC']],
     });
     res.json(history);
